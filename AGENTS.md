@@ -27,14 +27,8 @@ Out of scope:
 - Avoid unrelated refactors unless explicitly requested.
 - Do not add dependencies without clear justification.
 
-## Code Expectations
-- Use clear names that match the product domain.
-- Keep functions focused and modules cohesive.
-- Prefer explicit types and avoid `any`.
-- Keep side effects at boundaries.
-- Use parameterized database queries only.
-- Use stable, user-facing browser locators when possible.
-- Do not rely on arbitrary sleeps when waiting for page changes.
+## Coding Standards
+- Follow [CODING_STANDARDS.md](/Users/dereksun/VSCode/fast-app/CODING_STANDARDS.md) for code style, architecture expectations, testing norms, and stack-specific best practices.
 
 ## Testing
 - Add or update tests for behavior changes.

@@ -8,6 +8,18 @@ The design stays intentionally small, but splits responsibilities cleanly so fut
 
 This is a human-supervised autofill tool, not a fully autonomous job application bot.
 
+## Current Status
+
+The repository currently includes Phase 1 foundation work only:
+
+- npm workspace setup
+- TypeScript project references
+- placeholder server, client, and shared entry points
+- local-only runtime path conventions
+- planning and tracking documents
+
+No API routes, dashboard behavior, database schema, browser automation, or resolver logic have been implemented yet.
+
 ## Scope
 
 ### In Scope For V1
@@ -86,16 +98,15 @@ fast-app/
 ├── package.json
 ├── tsconfig.json
 ├── project/
-│   ├── instructions/
-│   │   ├── agent-instructions.md
-│   │   └── coding-standards.md
 │   ├── plans/
-│   │   └── implementation-plan.md
+│   │   ├── implementation-plan.md
+│   │   └── phase-prompt-master.md
 │   ├── trackers/
 │   │   ├── task-tracker.md
 │   │   ├── test-tracker.md
 │   │   └── decision-log.md
 │   └── specs/
+│       ├── local-runtime-paths.md
 │       └── product-scope.md
 ├── apps/
 │   ├── server/
@@ -132,33 +143,11 @@ fast-app/
 │   │           └── normalize.ts
 │   └── client/
 │       └── src/
-│           ├── main.tsx
-│           ├── app.tsx
-│           ├── pages/
-│           │   ├── dashboard.tsx
-│           │   ├── profile.tsx
-│           │   └── memory.tsx
-│           ├── components/
-│           │   ├── run-status.tsx
-│           │   ├── prompt-panel.tsx
-│           │   ├── step-log.tsx
-│           │   └── memory-editor.tsx
-│           ├── api/
-│           │   ├── client.ts
-│           │   └── events.ts
-│           └── styles/
-│               └── app.css
+│           └── index.ts
 ├── packages/
 │   └── shared/
 │       └── src/
-│           ├── schemas/
-│           │   ├── profile.ts
-│           │   ├── memory.ts
-│           │   └── runs.ts
-│           ├── types/
-│           │   └── events.ts
-│           └── constants/
-│               └── field-aliases.ts
+│           └── index.ts
 ├── data/
 │   ├── app.db
 │   ├── browser-profile/
@@ -181,12 +170,13 @@ fast-app/
 
 ### Project Ops Files
 
-- `project/instructions/agent-instructions.md` holds local build rules, workflow notes, and constraints for future contributors or agents.
 - `project/plans/implementation-plan.md` is the current build plan for v1 milestones and sequencing.
+- `project/plans/phase-prompt-master.md` is the reusable prompt template for generating phase-specific implementation prompts.
 - `project/trackers/task-tracker.md` tracks feature work, status, owners, and blockers.
 - `project/trackers/test-tracker.md` tracks planned coverage, execution status, and known gaps.
 - `project/trackers/decision-log.md` records important architectural or product decisions so context is not lost.
-- `project/specs/product-scope.md` can hold a tighter product brief if the README stays high level.
+- `project/specs/product-scope.md` holds a tighter product brief than the README.
+- `project/specs/local-runtime-paths.md` documents local-only storage paths for sensitive runtime data.
 
 ## Core Workflow
 
