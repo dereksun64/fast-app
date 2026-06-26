@@ -6,6 +6,28 @@ This project is a local, minimal v1 job application autofiller that opens a real
 
 The design stays intentionally small, but splits responsibilities cleanly so future versions can add richer memory, site adapters, resume parsing, and submission workflows without reworking the foundation.
 
+This is a human-supervised autofill tool, not a fully autonomous job application bot.
+
+## Scope
+
+### In Scope For V1
+
+- Visible browser automation for job application forms
+- Filling common fields from a saved applicant profile
+- Pausing on uncertain fields and asking the user what to do
+- Remembering user-confirmed answers for later reuse
+- Advancing through clear next steps one page at a time
+- Stopping for human review before final submission
+
+### Out Of Scope For V1
+
+- Autonomous final submission
+- AI-generated answers for open-ended questions
+- Broad anti-bot or CAPTCHA bypass
+- Deep site-specific adapters for every job platform
+- Resume parsing and profile extraction
+- Fully hands-off multi-step application completion
+
 ## Chosen Defaults
 
 - Operator experience: local web app
@@ -33,7 +55,7 @@ The design stays intentionally small, but splits responsibilities cleanly so fut
 - Saves confirmed answers for later reuse
 - Stops at review instead of submitting automatically
 
-## What It Does Not Do in V1
+## Out Of Scope For V1
 
 - No autonomous final submission
 - No fancy AI answer generation
@@ -53,6 +75,118 @@ The code should stay minimal by organizing around a few focused modules:
 - `runner` for application sessions
 - `field-matcher` for deciding whether to autofill or ask
 - `prompt-bridge` for pausing and resuming runs when user input is needed
+
+## Suggested Folder Structure
+
+This structure keeps v1 small while preserving clear boundaries between browser orchestration, the operator UI, and shared contracts.
+
+```text
+fast-app/
+├── README.md
+├── package.json
+├── tsconfig.json
+├── project/
+│   ├── instructions/
+│   │   ├── agent-instructions.md
+│   │   └── coding-standards.md
+│   ├── plans/
+│   │   └── implementation-plan.md
+│   ├── trackers/
+│   │   ├── task-tracker.md
+│   │   ├── test-tracker.md
+│   │   └── decision-log.md
+│   └── specs/
+│       └── product-scope.md
+├── apps/
+│   ├── server/
+│   │   └── src/
+│   │       ├── index.ts
+│   │       ├── routes/
+│   │       │   ├── runs.ts
+│   │       │   ├── profile.ts
+│   │       │   └── memory.ts
+│   │       ├── runner/
+│   │       │   ├── run-manager.ts
+│   │       │   ├── prompt-bridge.ts
+│   │       │   └── step-publisher.ts
+│   │       ├── browser/
+│   │       │   ├── playwright.ts
+│   │       │   └── page-scanner.ts
+│   │       ├── resolvers/
+│   │       │   ├── profile-resolver.ts
+│   │       │   ├── learned-answer-resolver.ts
+│   │       │   └── resolver-pipeline.ts
+│   │       ├── adapters/
+│   │       │   ├── site-adapter.ts
+│   │       │   └── generic-dom-adapter.ts
+│   │       ├── memory/
+│   │       │   ├── memory-repository.ts
+│   │       │   └── memory-matcher.ts
+│   │       ├── profile/
+│   │       │   └── profile-repository.ts
+│   │       ├── db/
+│   │       │   ├── sqlite.ts
+│   │       │   └── migrations/
+│   │       └── lib/
+│   │           ├── logger.ts
+│   │           └── normalize.ts
+│   └── client/
+│       └── src/
+│           ├── main.tsx
+│           ├── app.tsx
+│           ├── pages/
+│           │   ├── dashboard.tsx
+│           │   ├── profile.tsx
+│           │   └── memory.tsx
+│           ├── components/
+│           │   ├── run-status.tsx
+│           │   ├── prompt-panel.tsx
+│           │   ├── step-log.tsx
+│           │   └── memory-editor.tsx
+│           ├── api/
+│           │   ├── client.ts
+│           │   └── events.ts
+│           └── styles/
+│               └── app.css
+├── packages/
+│   └── shared/
+│       └── src/
+│           ├── schemas/
+│           │   ├── profile.ts
+│           │   ├── memory.ts
+│           │   └── runs.ts
+│           ├── types/
+│           │   └── events.ts
+│           └── constants/
+│               └── field-aliases.ts
+├── data/
+│   ├── app.db
+│   ├── browser-profile/
+│   ├── logs/
+│   └── screenshots/
+└── tests/
+    ├── unit/
+    ├── integration/
+    └── fixtures/
+```
+
+### Folder Notes
+
+- `project` is for human and agent working docs: instructions, implementation plans, task tracking, test tracking, and decision records.
+- `apps/server` owns browser automation, orchestration, prompt handling, persistence, and APIs.
+- `apps/client` is the local operator dashboard for starting runs, answering prompts, and editing saved data.
+- `packages/shared` holds schemas, shared types, and constants used by both sides so contracts stay aligned.
+- `data` is local-only runtime state and should be ignored in version control.
+- `tests` is split by unit and integration coverage, with fixtures for synthetic forms.
+
+### Project Ops Files
+
+- `project/instructions/agent-instructions.md` holds local build rules, workflow notes, and constraints for future contributors or agents.
+- `project/plans/implementation-plan.md` is the current build plan for v1 milestones and sequencing.
+- `project/trackers/task-tracker.md` tracks feature work, status, owners, and blockers.
+- `project/trackers/test-tracker.md` tracks planned coverage, execution status, and known gaps.
+- `project/trackers/decision-log.md` records important architectural or product decisions so context is not lost.
+- `project/specs/product-scope.md` can hold a tighter product brief if the README stays high level.
 
 ## Core Workflow
 
