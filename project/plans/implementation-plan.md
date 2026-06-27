@@ -53,14 +53,14 @@ Steps:
 
 | Checkbox | Status | Step |
 |---|---|---|
-| [ ] | Not Started | Define `ApplicantProfile` schema with required and optional fields, including `defaultResumePath`. |
-| [ ] | Not Started | Define `LearnedAnswer` schema with raw label, normalized label, control type, host/path context, answer type/value, enabled state, and timestamps. |
-| [ ] | Not Started | Define `ApplicationRun`, `RunStatus`, `Prompt`, `RunStep`, and live event schemas. |
-| [ ] | Not Started | Define request/response schemas for `/runs`, `/profile`, `/memory`, and prompt responses. |
-| [ ] | Not Started | Add canonical field aliases for common profile fields such as name, email, phone, location, LinkedIn, portfolio, work authorization, and sponsorship. |
-| [ ] | Not Started | Add pure normalization helpers for labels, whitespace, punctuation, hostnames, and nearby context. |
-| [ ] | Not Started | Add unit tests for schema acceptance/rejection and normalization behavior. |
-| [ ] | Not Started | Export shared contracts through a single package entry point. |
+| [x] | Done | Define `ApplicantProfile` schema with required and optional fields, including `defaultResumePath`. |
+| [x] | Done | Define `LearnedAnswer` schema with raw label, normalized label, control type, host/path context, answer type/value, enabled state, and timestamps. |
+| [x] | Done | Define `ApplicationRun`, `RunStatus`, `Prompt`, `RunStep`, and live event schemas. |
+| [x] | Done | Define request/response schemas for `/runs`, `/profile`, `/memory`, and prompt responses. |
+| [x] | Done | Add canonical field aliases for common profile fields such as name, email, phone, location, LinkedIn, portfolio, work authorization, and sponsorship. |
+| [x] | Done | Add pure normalization helpers for labels, whitespace, punctuation, hostnames, and nearby context. |
+| [x] | Done | Add unit tests for schema acceptance/rejection and normalization behavior. |
+| [x] | Done | Export shared contracts through a single package entry point. |
 
 ## Phase 3: SQLite Persistence
 

@@ -52,6 +52,12 @@ If I do not choose, the implementing agent should default to step-by-step for le
 The generated phase prompt must tell the implementing agent to include learning support:
 
 - Explain what changed and why in plain language after each meaningful step.
+- Begin each meaningful step write-up with a short `Main Purpose` section that states, in 1-2 sentences, the primary goal of that step before any implementation detail.
+- Start each step summary with a clear overview of the concrete code or files changed before moving into teaching notes.
+- Include a better explanation of why the chosen design fits the repo, not just what was edited.
+- Summarize the main tradeoffs or alternatives considered whenever the change introduces a constraint, dependency, or boundary decision.
+- Call out what the reviewer should look at in the code and why those files matter.
+- State what was verified for that step and what remains unverified.
 - Define important terms briefly when they first appear.
 - Include 2-4 short quiz questions at the end of each step or milestone.
 - Include answers separately under a collapsible or clearly marked "Quiz Answers" section.
@@ -122,11 +128,20 @@ Tell the implementing agent which planning files, trackers, README sections, or 
 
 ## Learning Output Requirements
 
-Require concise explanations, teaching notes, and quiz questions with answers.
+Require concise but substantive explanations, teaching notes, and quiz questions with answers.
+Require each meaningful step summary to include:
+
+- A short `Main Purpose` section at the top
+- What changed, with concrete files or modules named first
+- Why the change was made and why it belongs in that part of the codebase
+- The most important design decision or tradeoff in that step
+- What the user should review in the code
+- What was tested or verified, plus any remaining gap for that step
 
 ## Final Response Requirements
 
 Tell the implementing agent to summarize changed files, tests run, remaining gaps, and learning quiz answers. The final response should be clear and short enough for a learning programmer to use.
+Also require the final response to explain the most important design choices, highlight the main files to review first, and briefly note why the implementation took its current shape.
 
 Additional useful requirements for the generated phase prompt:
 
