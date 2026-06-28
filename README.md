@@ -10,7 +10,7 @@ This is a human-supervised autofill tool, not a fully autonomous job application
 
 ## Current Status
 
-The repository currently includes Phase 1 and Phase 2 foundation work, Phase 3 persistence work, Phase 4 local API work, and Phase 5 resolver decision work:
+The repository currently includes Phase 1 and Phase 2 foundation work, Phase 3 persistence work, Phase 4 local API work, Phase 5 resolver decision work, and Phase 6 browser-scanning foundations:
 
 - npm workspace setup
 - TypeScript project references
@@ -25,9 +25,14 @@ The repository currently includes Phase 1 and Phase 2 foundation work, Phase 3 p
 - in-memory run event publisher and Server-Sent Events endpoint
 - stub runner that creates observable pending runs without launching browser automation
 - pure resolver modules for profile alias matching, split-name handling, enabled learned-answer reuse, option safety, and conservative prompt/skip decisions
+- Playwright browser service for a persistent visible browser profile
+- generic DOM adapter that scans common form controls into resolver-compatible field descriptors
+- conservative browser filling utilities that only act on resolver `fill` decisions
+- continuation-control classification as data only, with no automatic submit/apply clicks
+- local screenshot helper that stores screenshots by file path
 - planning and tracking documents
 
-No dashboard behavior, browser automation, real prompt resume orchestration, or final-submit behavior has been implemented yet.
+No dashboard behavior, real prompt resume orchestration, multi-page browser run management, or final-submit behavior has been implemented yet.
 
 ## Scope
 
@@ -259,6 +264,22 @@ Run the local API with:
 ```bash
 npm run dev:server
 ```
+
+## Browser Setup
+
+Phase 6 adds Playwright as the server browser automation dependency. Browser automation is designed to be visible and persistent by default:
+
+- Browser profile: `data/browser-profile/`
+- Screenshots: `data/screenshots/`
+- Browser mode: non-headless unless a test explicitly overrides it
+
+Install the local Chromium browser binary before manual browser verification:
+
+```bash
+npx playwright install chromium
+```
+
+Manual login sessions should happen in the visible browser window. The app stores browser profile state locally under `data/browser-profile/`; do not commit anything under `data/`.
 
 By default the server listens on `127.0.0.1:4317`. Override with `FAST_APP_HOST` and `FAST_APP_PORT` when needed.
 

@@ -17,9 +17,12 @@
 | Server app bootstrap | Done | Covers app creation without listening on a port, migration application, repository wiring, in-memory run-event publishing, local listen option parsing, and invalid port rejection. |
 | Server API routes | Done | Covers profile read/update, memory list/patch, run creation/status, prompt response persistence, invalid payloads, missing resources, run/prompt mismatch rejection, structured errors, and SSE event delivery. |
 | Resolver decision logic | Done | Covers profile alias resolution, split-name handling, missing split-name values, learned-answer strong matches, disabled memory exclusion, host/path/context mismatch behavior, option compatibility, low-confidence prompts, open-ended prompt behavior, and resolver ordering. |
-| Browser, prompt resume, and UI behavior tests | Not Started | Browser automation, prompt resume orchestration, saving new learned answers during runs, final-submit safety, and dashboard behavior remain deferred until later runtime phases. |
+| Browser service configuration | Done | Covers configured persistent profile path, visible default launch mode, headless test override, URL validation, and screenshot reason sanitization without launching a real browser. |
+| Generic DOM adapter tests | Done | Synthetic form tests cover scanner descriptors, label/context extraction, option extraction, safe fills, prompt/skip non-mutation, metadata sanitization, and continuation classification. These tests execute when Playwright Chromium can launch locally; they skip without a browser binary. |
+| Prompt resume, final-submit safety, and UI behavior tests | Not Started | Prompt resume orchestration, saving new learned answers during runs, final-submit enforcement, and dashboard behavior remain deferred until later runtime phases. |
 
 ## Known Gaps
 
-- No browser, prompt resume orchestration, final-submit safety, or UI behavior tests exist yet because those runtime behaviors have not started.
+- Synthetic browser-driving adapter tests are blocked inside the Codex sandbox because Chromium cannot register its macOS Mach port from this environment. Run `PLAYWRIGHT_BROWSERS_PATH=.cache/ms-playwright npm test` in a normal local terminal to execute them.
+- No prompt resume orchestration, final-submit safety enforcement, or UI behavior tests exist yet because those runtime behaviors have not started.
 - Real socket listener lifecycle is not covered in automated tests because the sandbox blocks binding to `127.0.0.1`; Fastify in-process injection covers route behavior.

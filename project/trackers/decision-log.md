@@ -158,3 +158,21 @@
   - Later page scanning and browser filling phases can call one resolver pipeline without touching persistence, routes, React, or Playwright.
   - Disabled learned answers remain stored but excluded from automatic reuse.
   - The app continues to prefer prompting over guessing and does not generate open-ended application answers.
+
+## 2026-06-28 - Phase 6 browser adapter boundary and scan/fill rules
+
+- Status: Accepted
+- Context: The app needs visible browser automation that can scan a page and perform approved fills without moving prompt, memory, or submission policy into Playwright code.
+- Decision:
+  - Add Playwright as the server browser dependency because the README, implementation plan, and coding standards already selected Playwright for visible local browser automation.
+  - Add a browser service that launches Chromium with a persistent user data directory from `browserProfilePath` and uses non-headless mode by default.
+  - Keep the `SiteAdapter` boundary under `apps/server/src/adapters`; adapters scan pages into existing resolver `FieldDescriptor` values, fill only resolver `fill` decisions, and classify continuation controls as data.
+  - Ship a generic DOM adapter first. It scans visible enabled text inputs, textareas, selects, checkboxes, and radio groups, and ignores file inputs because the current shared control-type contract has no safe file-selection type.
+  - Extract labels and context from labels, ARIA attributes, placeholders, fieldset legends, option text, and nearby visible form text.
+  - Return sanitized browser step metadata with page URL, field label, control type, decision action, source, reason, counts, or screenshot path only. Do not include answer values.
+  - Add screenshot capture as an explicit helper that writes local PNG files under the configured screenshots path and returns file path metadata only.
+  - Classify submit/apply/finish-like controls as `final-submit` data and do not click them in Phase 6.
+- Consequences:
+  - Later run-manager work can compose browser scanning, resolver decisions, prompts, memory updates, and events without giving the browser layer authority to guess answers or submit applications.
+  - Browser-facing synthetic form tests can validate scanner and fill behavior without touching real job sites.
+  - Manual visible-browser verification requires a local Playwright Chromium install with `npx playwright install chromium`.

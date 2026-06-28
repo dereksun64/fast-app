@@ -5,7 +5,7 @@ All sensitive runtime data stays local and must remain ignored by version contro
 | Path | Purpose | Notes |
 |---|---|---|
 | `data/app.db` | Local SQLite database | Phase 3 will create and manage this file. |
-| `data/browser-profile/` | Persistent browser session data | Used later for visible Playwright sessions. |
+| `data/browser-profile/` | Persistent browser session data | Used by visible Playwright sessions. |
 | `data/logs/` | Structured local logs | Keep logs free of unnecessary personal data. |
 | `data/screenshots/` | Review and failure screenshots | Capture only when needed and avoid storing unnecessary PII. |
 | `data/resumes/` | Local resume files | Treat resume content as sensitive operator data. |
@@ -30,3 +30,8 @@ Relative override paths are resolved from `FAST_APP_PROJECT_ROOT`. `FAST_APP_ALL
 - Do not commit any files under `data/`.
 - Do not log full resumes or unnecessary personal information.
 - Prefer storing file paths and small metadata over embedded document contents.
+- Browser screenshots should be local-only files referenced by path metadata, not embedded blobs or API payloads.
+
+## Browser Notes
+
+Phase 6 uses `data/browser-profile/` as the default Playwright persistent profile directory. Install Chromium locally with `npx playwright install chromium` before manual visible-browser verification. Operators should perform any job-site login in the visible browser window so the persistent profile can reuse that local session.

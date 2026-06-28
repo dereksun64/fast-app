@@ -160,14 +160,14 @@ Steps:
 
 | Checkbox | Status | Step |
 |---|---|---|
-| [ ] | Not Started | Add Playwright browser service using a persistent user data directory and non-headless browser mode. |
-| [ ] | Not Started | Define `SiteAdapter` interface with scan, fill, continue, and safety classification capabilities. |
-| [ ] | Not Started | Implement generic DOM adapter for inputs, textareas, selects, checkboxes, and radios. |
-| [ ] | Not Started | Extract labels and nearby context using accessible labels, placeholders, visible text, and surrounding form text. |
-| [ ] | Not Started | Implement safe field filling using Playwright locators and condition-based waits. |
-| [ ] | Not Started | Capture sanitized step metadata and optional screenshots without storing unnecessary personal information. |
-| [ ] | Not Started | Add browser-facing tests against local synthetic form fixtures. |
-| [ ] | Not Started | Manually verify the browser is visible and the persistent session survives server restart. |
+| [x] | Done | Add Playwright browser service using a persistent user data directory and non-headless browser mode. |
+| [x] | Done | Define `SiteAdapter` interface with scan, fill, continue, and safety classification capabilities. |
+| [x] | Done | Implement generic DOM adapter for inputs, textareas, selects, checkboxes, and radios. |
+| [x] | Done | Extract labels and nearby context using accessible labels, placeholders, visible text, and surrounding form text. |
+| [x] | Done | Implement safe field filling using Playwright locators and condition-based waits. |
+| [x] | Done | Capture sanitized step metadata and optional screenshots without storing unnecessary personal information. |
+| [x] | Done | Add browser-facing tests against local synthetic form fixtures. |
+| [ ] | Blocked | Manually verify the browser is visible and the persistent session survives server restart. Chromium is installed in the workspace cache, but the Codex sandbox blocks Chromium launch on macOS; run the check from a normal local terminal. |
 
 ## Phase 7: Run Manager, Prompt Bridge, And Resume Flow
 

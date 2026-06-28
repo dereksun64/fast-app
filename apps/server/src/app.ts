@@ -1,6 +1,10 @@
 import fastify, { type FastifyInstance } from "fastify";
 
 import {
+  createBrowserService,
+  type BrowserService
+} from "./browser/playwright.js";
+import {
   loadServerRuntimePaths,
   type ServerRuntimePaths
 } from "./config/runtime-paths.js";
@@ -37,6 +41,7 @@ export interface ServerAppContext {
   readonly runRepository: RunRepository;
   readonly eventPublisher: RunEventPublisher;
   readonly stubRunner: StubRunner;
+  readonly browserService: BrowserService;
 }
 
 export interface CreateServerAppOptions {
@@ -73,6 +78,9 @@ export async function createServerApp(
   );
   const runRepository = createRunRepository(database, repositoryOptions(options));
   const eventPublisher = createRunEventPublisher();
+  const browserService = createBrowserService({
+    runtimePaths
+  });
 
   const context: ServerAppContext = {
     runtimePaths,
@@ -85,7 +93,8 @@ export async function createServerApp(
       runRepository,
       eventPublisher,
       ...stubRunnerOptions(options)
-    })
+    }),
+    browserService
   };
 
   const app = fastify({
@@ -93,6 +102,8 @@ export async function createServerApp(
   });
 
   app.addHook("onClose", async () => {
+    await browserService.close();
+
     if (!options.database) {
       database.close();
     }
