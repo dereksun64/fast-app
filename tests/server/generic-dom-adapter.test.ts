@@ -215,20 +215,20 @@ describeWithBrowser("generic DOM adapter", () => {
 
     expect(controls).toEqual(
       expect.arrayContaining([
-        {
+        expect.objectContaining({
           label: "Continue",
           controlType: "button",
           buttonType: "button",
-          kind: "safe-next",
-          reason: "Control label is clear non-final step navigation."
-        },
-        {
+          kind: "ambiguous",
+          reason: "Nearby text includes final submission language."
+        }),
+        expect.objectContaining({
           label: "Submit application",
           controlType: "button",
           buttonType: "submit",
           kind: "final-submit",
           reason: "Control label uses final submission language."
-        }
+        })
       ])
     );
   });

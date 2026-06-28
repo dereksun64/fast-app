@@ -613,7 +613,7 @@ const scanFieldControlsInPage = new Function(`
         .filter((option) => !option.disabled && option.text.trim().length > 0)
         .map((option) => ({
           label: option.text.trim(),
-          value: option.getAttribute("value") || option.text.trim()
+          value: option.getAttribute("value") ?? option.text.trim()
         })),
       required: select.required || undefined
     });
