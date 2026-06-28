@@ -4,7 +4,11 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { FillFieldResult, SiteAdapter } from "../../apps/server/src/adapters/site-adapter.js";
+import type {
+  ContinuationControl,
+  FillFieldResult,
+  SiteAdapter
+} from "../../apps/server/src/adapters/site-adapter.js";
 import type { BrowserService } from "../../apps/server/src/browser/playwright.js";
 import { applyMigrations } from "../../apps/server/src/db/migrations.js";
 import { appMigrations } from "../../apps/server/src/db/migrations/index.js";
@@ -236,6 +240,120 @@ describe("run manager", () => {
     harness.database.close();
   });
 
+  it("records continuation classifications and a stop-before-submit review step", async () => {
+    const harness = createHarness({
+      profile,
+      fields: [emailField()],
+      controls: [
+        {
+          label: "Submit application",
+          controlType: "button",
+          buttonType: "submit",
+          kind: "final-submit",
+          reason: "Control label uses final submission language."
+        },
+        {
+          label: "Continue",
+          controlType: "button",
+          buttonType: "submit",
+          kind: "ambiguous",
+          reason: "Submit-type control is not safe to treat as one-step navigation."
+        },
+        {
+          label: "Next",
+          controlType: "button",
+          buttonType: "button",
+          kind: "safe-next",
+          reason: "Control label is clear non-final step navigation."
+        }
+      ]
+    });
+
+    const response = await harness.runManager.startRun(
+      "https://jobs.example.com/apply"
+    );
+    const steps = harness.runRepository.listRunSteps("run-1");
+
+    expect(response.run.status).toBe("waitingForReview");
+    expect(steps.map((step) => step.message)).toEqual(
+      expect.arrayContaining([
+        "1 final submit-like control detected and blocked from automation.",
+        "1 ambiguous navigation control detected; automation will not click.",
+        "1 clear non-final next control available for explicit one-step advance.",
+        "Stop before submit: final submit-like controls require a human click.",
+        "Stop before submit: automation is waiting for human review."
+      ])
+    );
+    expect(JSON.stringify(steps)).not.toContain("ada@example.com");
+
+    harness.database.close();
+  });
+
+  it("advances exactly one safe next step after explicit user action and stops again", async () => {
+    const harness = createHarness({
+      profile,
+      fields: [emailField()],
+      controls: [
+        {
+          label: "Next",
+          controlType: "button",
+          buttonType: "button",
+          kind: "safe-next",
+          reason: "Control label is clear non-final step navigation."
+        }
+      ]
+    });
+    await harness.runManager.startRun("https://jobs.example.com/apply");
+
+    const response = await harness.runManager.advanceOneStep("run-1");
+    const steps = harness.runRepository.listRunSteps("run-1");
+
+    expect(response?.run.status).toBe("waitingForReview");
+    expect(harness.adapter.clickedControls).toHaveLength(1);
+    expect(harness.adapter.clickedControls[0]).toMatchObject({
+      label: "Next",
+      kind: "safe-next"
+    });
+    expect(steps.map((step) => step.message)).toEqual(
+      expect.arrayContaining([
+        "Explicit one-step advance requested by user.",
+        "Clicked one clear non-final next control.",
+        "Scanning after one-step advance.",
+        "Stop before submit: automation is waiting for human review."
+      ])
+    );
+
+    harness.database.close();
+  });
+
+  it("blocks explicit advance when no clear safe next control is available", async () => {
+    const harness = createHarness({
+      profile,
+      fields: [emailField()],
+      controls: [
+        {
+          label: "Submit application",
+          controlType: "button",
+          buttonType: "submit",
+          kind: "final-submit",
+          reason: "Control label uses final submission language."
+        }
+      ]
+    });
+    await harness.runManager.startRun("https://jobs.example.com/apply");
+
+    const response = await harness.runManager.advanceOneStep("run-1");
+    const steps = harness.runRepository.listRunSteps("run-1");
+
+    expect(response?.run.status).toBe("waitingForReview");
+    expect(harness.adapter.clickedControls).toEqual([]);
+    expect(steps.map((step) => step.message)).toContain(
+      "Explicit one-step advance blocked: no clear non-final next control is available."
+    );
+
+    harness.database.close();
+  });
+
   it("records observable failed and canceled terminal states", async () => {
     const failedHarness = createHarness({
       profile,
@@ -269,6 +387,7 @@ function createHarness(options: {
   readonly profile?: ApplicantProfile;
   readonly ids?: string[];
   readonly failFill?: boolean;
+  readonly controls?: readonly ContinuationControl[];
 }) {
   const database = openMigratedTemporaryDatabase();
   const ids = options.ids ?? [
@@ -297,7 +416,11 @@ function createHarness(options: {
     eventPublisher,
     now: createClock()
   });
-  const adapter = createFakeAdapter(options.fields, options.failFill ?? false);
+  const adapter = createFakeAdapter({
+    fields: options.fields,
+    failFill: options.failFill ?? false,
+    controls: options.controls ?? []
+  });
   const runManager = createRunManager({
     browserService: createFakeBrowserService(),
     siteAdapter: adapter,
@@ -345,7 +468,8 @@ function createFakeBrowserService(): BrowserService {
     },
     async openPage() {
       return {
-        url: () => "https://jobs.example.com/apply"
+        url: () => "https://jobs.example.com/apply",
+        waitForLoadState: async () => undefined
       } as Awaited<ReturnType<BrowserService["openPage"]>>;
     },
     async close() {
@@ -354,19 +478,25 @@ function createFakeBrowserService(): BrowserService {
   };
 }
 
-function createFakeAdapter(
-  fields: readonly FieldDescriptor[],
-  failFill: boolean
-): SiteAdapter & { readonly fillDecisions: ResolverDecision[] } {
+function createFakeAdapter(options: {
+  readonly fields: readonly FieldDescriptor[];
+  readonly failFill: boolean;
+  readonly controls: readonly ContinuationControl[];
+}): SiteAdapter & {
+  readonly fillDecisions: ResolverDecision[];
+  readonly clickedControls: ContinuationControl[];
+} {
   const fillDecisions: ResolverDecision[] = [];
+  const clickedControls: ContinuationControl[] = [];
 
   return {
     fillDecisions,
+    clickedControls,
     async scanPage() {
-      return fields;
+      return options.fields;
     },
     async fillField(_page, decision): Promise<FillFieldResult> {
-      if (failFill) {
+      if (options.failFill) {
         throw new Error("Synthetic fill failure.");
       }
 
@@ -387,7 +517,38 @@ function createFakeAdapter(
       };
     },
     async classifyContinuationControls() {
-      return [];
+      return options.controls;
+    },
+    async clickContinuationControl(page, control) {
+      if (control.kind !== "safe-next") {
+        return {
+          action: "blocked",
+          control,
+          reason: control.reason,
+          metadata: {
+            action: "blocked-continuation",
+            pageUrl: page.url(),
+            continuationLabel: control.label,
+            continuationKind: control.kind,
+            reason: control.reason
+          }
+        };
+      }
+
+      clickedControls.push(control);
+
+      return {
+        action: "clicked",
+        control,
+        reason: "Clicked clear non-final step navigation.",
+        metadata: {
+          action: "continue",
+          pageUrl: page.url(),
+          continuationLabel: control.label,
+          continuationKind: control.kind,
+          reason: "Clicked clear non-final step navigation."
+        }
+      };
     }
   };
 }

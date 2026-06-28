@@ -21,7 +21,16 @@ afterEach(() => {
 describe("run routes", () => {
   it("starts a browser-backed run and stops for review when no prompts are needed", async () => {
     const server = await createTemporaryServer({
-      ids: ["run-1", "step-1", "step-2", "step-3", "step-4", "step-5", "step-6"],
+      ids: [
+        "run-1",
+        "step-1",
+        "step-2",
+        "step-3",
+        "step-4",
+        "step-5",
+        "step-6",
+        "step-7"
+      ],
       timestamps: [
         "2026-06-28T00:00:00.000Z",
         "2026-06-28T00:01:00.000Z",
@@ -53,16 +62,15 @@ describe("run routes", () => {
         jobUrl: "https://jobs.example.com/apply/123",
         status: "waitingForReview",
         latestStep: {
-          id: "step-6",
+          id: "step-7",
           runId: "run-1",
           status: "waitingForReview",
           level: "info",
-          message:
-            "Current page filled as far as safely possible. Waiting for human review."
+          message: "Stop before submit: automation is waiting for human review."
         }
       }
     });
-    expect(server.context.runRepository.listRunSteps("run-1")).toHaveLength(6);
+    expect(server.context.runRepository.listRunSteps("run-1")).toHaveLength(7);
     expect(events.map((event) => event.eventType)).toEqual([
       "runStatusChanged",
       "runStepAdded",
@@ -72,6 +80,7 @@ describe("run routes", () => {
       "runStepAdded",
       "runStepAdded",
       "runStatusChanged",
+      "runStepAdded",
       "runStepAdded",
       "runStatusChanged",
       "runStepAdded"
@@ -181,6 +190,50 @@ describe("run routes", () => {
     const response = await server.app.inject({
       method: "GET",
       url: "/runs/missing"
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({
+      error: {
+        code: "NOT_FOUND",
+        message: "Run not found."
+      }
+    });
+
+    await server.close();
+  });
+
+  it("rejects one-step advance unless the run is waiting for review", async () => {
+    const server = await createTemporaryServer({
+      ids: ["run-1"],
+      timestamps: ["2026-06-28T00:00:00.000Z"]
+    });
+    const run = server.context.runRepository.createRun(
+      "https://jobs.example.com/apply/123"
+    );
+
+    const response = await server.app.inject({
+      method: "POST",
+      url: `/runs/${run.id}/advance`
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      error: {
+        code: "BAD_REQUEST",
+        message: "No active reviewed browser session is available for this run."
+      }
+    });
+
+    await server.close();
+  });
+
+  it("returns a structured error when advancing a missing run", async () => {
+    const server = await createTemporaryServer();
+
+    const response = await server.app.inject({
+      method: "POST",
+      url: "/runs/missing/advance"
     });
 
     expect(response.statusCode).toBe(404);
@@ -444,7 +497,8 @@ function createFakeBrowserService(): BrowserService {
     },
     async openPage() {
       return {
-        url: () => "https://jobs.example.com/apply/123"
+        url: () => "https://jobs.example.com/apply/123",
+        waitForLoadState: async () => undefined
       } as Awaited<ReturnType<BrowserService["openPage"]>>;
     },
     async close() {
@@ -463,6 +517,9 @@ function createEmptySiteAdapter(): SiteAdapter {
     },
     async classifyContinuationControls() {
       return [];
+    },
+    async clickContinuationControl() {
+      throw new Error("Continuation controls should not be clicked in this route test.");
     }
   };
 }

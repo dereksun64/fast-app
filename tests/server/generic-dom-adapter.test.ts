@@ -4,6 +4,7 @@ import { chromium, type Browser, type Page } from "playwright";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  classifyContinuationControl,
   createFailureStepMetadata,
   createGenericDomAdapter,
   createScanStepMetadata
@@ -217,15 +218,168 @@ describeWithBrowser("generic DOM adapter", () => {
         {
           label: "Continue",
           controlType: "button",
-          kind: "continue"
+          buttonType: "button",
+          kind: "safe-next",
+          reason: "Control label is clear non-final step navigation."
         },
         {
           label: "Submit application",
           controlType: "button",
-          kind: "final-submit"
+          buttonType: "submit",
+          kind: "final-submit",
+          reason: "Control label uses final submission language."
         }
       ])
     );
+  });
+});
+
+describe("continuation control classification", () => {
+  it("classifies final submit-like controls as final submit", () => {
+    for (const label of [
+      "Submit application",
+      "Apply now",
+      "Finish",
+      "Complete application",
+      "Send",
+      "Done"
+    ]) {
+      expect(
+        classifyContinuationControl({
+          label,
+          controlType: "button",
+          buttonType: "button"
+        })
+      ).toEqual({
+        kind: "final-submit",
+        reason: "Control label uses final submission language."
+      });
+    }
+  });
+
+  it("classifies clear non-submit next controls as safe next", () => {
+    for (const label of ["Next", "Continue", "Save and continue"]) {
+      expect(
+        classifyContinuationControl({
+          label,
+          controlType: "button",
+          buttonType: "button"
+        })
+      ).toEqual({
+        kind: "safe-next",
+        reason: "Control label is clear non-final step navigation."
+      });
+    }
+  });
+
+  it("classifies review and confirmation controls separately from safe next", () => {
+    for (const label of ["Review application", "Confirm details", "Preview"]) {
+      expect(
+        classifyContinuationControl({
+          label,
+          controlType: "button",
+          buttonType: "button"
+        }).kind
+      ).toBe("review");
+    }
+  });
+
+  it("treats submit-type and final-context next controls as ambiguous", () => {
+    expect(
+      classifyContinuationControl({
+        label: "Continue",
+        controlType: "button",
+        buttonType: "submit"
+      })
+    ).toEqual({
+      kind: "ambiguous",
+      reason: "Submit-type control is not safe to treat as one-step navigation."
+    });
+    expect(
+      classifyContinuationControl({
+        label: "Next",
+        controlType: "button",
+        buttonType: "button",
+        nearbyContext: "Final step. Submit your application after this."
+      })
+    ).toEqual({
+      kind: "ambiguous",
+      reason: "Nearby text includes final submission language."
+    });
+    expect(
+      classifyContinuationControl({
+        label: "Save",
+        controlType: "button",
+        buttonType: "button"
+      }).kind
+    ).toBe("ambiguous");
+  });
+
+  it("blocks final, review, and ambiguous controls before requesting a click", async () => {
+    const adapter = createGenericDomAdapter();
+    const page = createFakeContinuationPage(() => {
+      throw new Error("Unsafe continuation controls must not request a locator.");
+    });
+
+    for (const control of [
+      {
+        label: "Submit application",
+        controlType: "button" as const,
+        buttonType: "submit" as const,
+        kind: "final-submit" as const,
+        reason: "Control label uses final submission language."
+      },
+      {
+        label: "Review application",
+        controlType: "button" as const,
+        buttonType: "button" as const,
+        kind: "review" as const,
+        reason: "Control label leads to review or confirmation."
+      },
+      {
+        label: "Continue",
+        controlType: "button" as const,
+        buttonType: "submit" as const,
+        kind: "ambiguous" as const,
+        reason: "Submit-type control is not safe to treat as one-step navigation."
+      }
+    ]) {
+      await expect(adapter.clickContinuationControl(page, control)).resolves.toMatchObject({
+        action: "blocked",
+        control,
+        metadata: {
+          action: "blocked-continuation",
+          continuationLabel: control.label,
+          continuationKind: control.kind
+        }
+      });
+    }
+  });
+
+  it("clicks only a control already classified as safe next", async () => {
+    const clicked: string[] = [];
+    const adapter = createGenericDomAdapter();
+    const page = createFakeContinuationPage((role, name) => {
+      clicked.push(`${role}:${name}`);
+    });
+
+    await expect(
+      adapter.clickContinuationControl(page, {
+        label: "Continue",
+        controlType: "button",
+        buttonType: "button",
+        kind: "safe-next",
+        reason: "Control label is clear non-final step navigation."
+      })
+    ).resolves.toMatchObject({
+      action: "clicked",
+      metadata: {
+        action: "continue",
+        continuationLabel: "Continue",
+        continuationKind: "safe-next"
+      }
+    });
+    expect(clicked).toEqual(["button:Continue"]);
   });
 });
 
@@ -287,6 +441,21 @@ async function expectChecked(
   expected: boolean
 ): Promise<void> {
   expect(await page.locator(selector).isChecked()).toBe(expected);
+}
+
+function createFakeContinuationPage(
+  onClick: (role: "button" | "link", name: string) => void
+): Page {
+  return {
+    url: () => "https://jobs.example.test/apply",
+    getByRole: (role: "button" | "link", options: { name: string }) => ({
+      first: () => ({
+        click: async () => {
+          onClick(role, options.name);
+        }
+      })
+    })
+  } as unknown as Page;
 }
 
 function syntheticApplicationForm(): string {

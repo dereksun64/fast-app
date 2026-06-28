@@ -18,6 +18,7 @@ export {
 export {
   createRunRequestSchema,
   createRunResponseSchema,
+  advanceRunResponseSchema,
   getProfileResponseSchema,
   getRunResponseSchema,
   listMemoryResponseSchema,
@@ -27,6 +28,7 @@ export {
   updateLearnedAnswerResponseSchema,
   updateProfileRequestSchema,
   updateProfileResponseSchema,
+  type AdvanceRunResponse,
   type CreateRunRequest,
   type CreateRunResponse,
   type GetProfileResponse,

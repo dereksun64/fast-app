@@ -1,8 +1,10 @@
 import {
+  advanceRunResponseSchema,
   createRunResponseSchema,
   type LearnedAnswerValue,
   respondToPromptResponseSchema,
   runEventSchemaVersion,
+  type AdvanceRunResponse,
   type ApplicationRun,
   type CreateRunResponse,
   type Prompt,
@@ -16,7 +18,11 @@ import {
   createGenericDomAdapter,
   createScanStepMetadata
 } from "../adapters/generic-dom-adapter.js";
-import type { SiteAdapter } from "../adapters/site-adapter.js";
+import type {
+  ContinuationControl,
+  ContinuationControlKind,
+  SiteAdapter
+} from "../adapters/site-adapter.js";
 import type { BrowserService } from "../browser/playwright.js";
 import type { MemoryRepository } from "../memory/memory-repository.js";
 import type { ProfileRepository } from "../profile/profile-repository.js";
@@ -26,7 +32,6 @@ import type { RunRepository } from "./run-repository.js";
 import type { RunEventPublisher } from "./step-publisher.js";
 
 const terminalStatuses = new Set<RunStatus>([
-  "waitingForReview",
   "failed",
   "canceled",
   "completed"
@@ -34,6 +39,7 @@ const terminalStatuses = new Set<RunStatus>([
 
 export interface RunManager {
   startRun(jobUrl: string): Promise<CreateRunResponse>;
+  advanceOneStep(runId: string): Promise<AdvanceRunResponse | undefined>;
   respondToPrompt(input: RespondToPromptInput): Promise<RespondToPromptResponse | undefined>;
   cancelRun(runId: string): ApplicationRun | undefined;
 }
@@ -58,7 +64,7 @@ export interface CreateRunManagerOptions {
 interface ActiveRunSession {
   readonly runId: string;
   readonly page: Page;
-  readonly fields: readonly FieldDescriptor[];
+  fields: readonly FieldDescriptor[];
   nextFieldIndex: number;
   promptField: FieldDescriptor | undefined;
 }
@@ -111,6 +117,35 @@ export function createRunManager(options: CreateRunManagerOptions): RunManager {
 
       return createRunResponseSchema.parse({
         run: options.runRepository.getRun(run.id) ?? run
+      });
+    },
+
+    async advanceOneStep(runId: string): Promise<AdvanceRunResponse | undefined> {
+      const session = activeSession?.runId === runId ? activeSession : undefined;
+      const run = options.runRepository.getRun(runId);
+
+      if (!run) {
+        return undefined;
+      }
+
+      if (!session) {
+        throw new Error("No active reviewed browser session is available for this run.");
+      }
+
+      if (run.status !== "waitingForReview") {
+        throw new Error("One-step advance is only allowed from waiting for review.");
+      }
+
+      try {
+        await advanceReviewedSession(session, options, siteAdapter, now, async () => {
+          await processFields(session, options, siteAdapter, now);
+        });
+      } catch (error) {
+        activeSession = failRun(options, runId, error, now);
+      }
+
+      return advanceRunResponseSchema.parse({
+        run: options.runRepository.getRun(runId)
       });
     },
 
@@ -241,15 +276,134 @@ export function createRunManager(options: CreateRunManagerOptions): RunManager {
       session.nextFieldIndex += 1;
     }
 
-    transition(
-      managerOptions,
-      session.runId,
-      "waitingForReview",
-      "Current page filled as far as safely possible. Waiting for human review.",
-      currentTime,
-      { pageUrl: session.page.url() }
-    );
-    activeSession = undefined;
+    await enterReviewState(session, managerOptions, adapter, currentTime);
+  }
+}
+
+async function advanceReviewedSession(
+  session: ActiveRunSession,
+  options: CreateRunManagerOptions,
+  siteAdapter: SiteAdapter,
+  now: () => string,
+  processAfterAdvance: () => Promise<void>
+): Promise<void> {
+  const controls = await siteAdapter.classifyContinuationControls(session.page);
+  const safeNextControls = controls.filter((control) => control.kind === "safe-next");
+
+  if (safeNextControls.length !== 1) {
+    appendStep(options, {
+      runId: session.runId,
+      status: "waitingForReview",
+      level: "warning",
+      message:
+        safeNextControls.length === 0
+          ? "Explicit one-step advance blocked: no clear non-final next control is available."
+          : "Explicit one-step advance blocked: multiple clear next controls require human choice.",
+      pageUrl: session.page.url()
+    });
+    return;
+  }
+
+  const safeNextControl = safeNextControls[0];
+
+  if (!safeNextControl) {
+    return;
+  }
+
+  appendStep(options, {
+    runId: session.runId,
+    status: "waitingForReview",
+    level: "info",
+    message: "Explicit one-step advance requested by user.",
+    pageUrl: session.page.url()
+  });
+
+  const clickResult = await siteAdapter.clickContinuationControl(
+    session.page,
+    safeNextControl
+  );
+
+  if (clickResult.action === "blocked") {
+    appendStep(options, {
+      runId: session.runId,
+      status: "waitingForReview",
+      level: "warning",
+      message: "Explicit one-step advance blocked by adapter guard.",
+      pageUrl: clickResult.metadata.pageUrl
+    });
+    return;
+  }
+
+  appendStep(options, {
+    runId: session.runId,
+    status: "waitingForReview",
+    level: "info",
+    message: "Clicked one clear non-final next control.",
+    pageUrl: clickResult.metadata.pageUrl
+  });
+  await waitForAdvanceSettled(session.page);
+
+  transition(options, session.runId, "scanning", "Scanning after one-step advance.", now, {
+    pageUrl: session.page.url()
+  });
+  session.fields = await siteAdapter.scanPage(session.page);
+  session.nextFieldIndex = 0;
+  session.promptField = undefined;
+  appendStep(options, {
+    runId: session.runId,
+    status: "scanning",
+    level: "info",
+    message: `Scanned ${session.fields.length} fields.`,
+    pageUrl: session.page.url()
+  });
+  await processAfterAdvance();
+}
+
+async function enterReviewState(
+  session: ActiveRunSession,
+  options: CreateRunManagerOptions,
+  siteAdapter: SiteAdapter,
+  now: () => string
+): Promise<void> {
+  const controls = await siteAdapter.classifyContinuationControls(session.page);
+
+  recordContinuationClassifications(session, options, controls);
+  appendStep(options, {
+    runId: session.runId,
+    status: "waitingForReview",
+    level: "warning",
+    message: reviewStopMessage(controls),
+    pageUrl: session.page.url()
+  });
+  transition(
+    options,
+    session.runId,
+    "waitingForReview",
+    "Stop before submit: automation is waiting for human review.",
+    now,
+    { pageUrl: session.page.url() }
+  );
+}
+
+function recordContinuationClassifications(
+  session: ActiveRunSession,
+  options: CreateRunManagerOptions,
+  controls: readonly ContinuationControl[]
+): void {
+  for (const kind of continuationKindOrder) {
+    const count = controls.filter((control) => control.kind === kind).length;
+
+    if (count === 0) {
+      continue;
+    }
+
+    appendStep(options, {
+      runId: session.runId,
+      status: "waitingForReview",
+      level: continuationStepLevel(kind),
+      message: continuationClassificationMessage(kind, count),
+      pageUrl: session.page.url()
+    });
   }
 }
 
@@ -352,6 +506,60 @@ function promptResponseAnswer(
         value: response.value
       };
   }
+}
+
+const continuationKindOrder: readonly ContinuationControlKind[] = [
+  "final-submit",
+  "review",
+  "ambiguous",
+  "safe-next"
+];
+
+function continuationStepLevel(kind: ContinuationControlKind): "info" | "warning" {
+  return kind === "safe-next" ? "info" : "warning";
+}
+
+function continuationClassificationMessage(
+  kind: ContinuationControlKind,
+  count: number
+): string {
+  switch (kind) {
+    case "final-submit":
+      return `${count} final submit-like control${plural(count)} detected and blocked from automation.`;
+    case "review":
+      return `${count} review or confirmation control${plural(count)} detected; human review is required.`;
+    case "ambiguous":
+      return `${count} ambiguous navigation control${plural(count)} detected; automation will not click.`;
+    case "safe-next":
+      return `${count} clear non-final next control${plural(count)} available for explicit one-step advance.`;
+  }
+}
+
+function reviewStopMessage(controls: readonly ContinuationControl[]): string {
+  const hasFinalSubmit = controls.some((control) => control.kind === "final-submit");
+  const hasAmbiguous = controls.some((control) => control.kind === "ambiguous");
+
+  if (hasFinalSubmit) {
+    return "Stop before submit: final submit-like controls require a human click.";
+  }
+
+  if (hasAmbiguous) {
+    return "Waiting for review: ambiguous navigation controls require a human decision.";
+  }
+
+  return "Waiting for review: current page filling is complete.";
+}
+
+function plural(count: number): string {
+  return count === 1 ? "" : "s";
+}
+
+async function waitForAdvanceSettled(page: Page): Promise<void> {
+  await page
+    .waitForLoadState("domcontentloaded", {
+      timeout: 5_000
+    })
+    .catch(() => undefined);
 }
 
 function assertNoActiveRun(

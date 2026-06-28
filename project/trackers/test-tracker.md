@@ -21,10 +21,10 @@
 | Generic DOM adapter tests | Done | Synthetic form tests cover scanner descriptors, label/context extraction, option extraction, safe fills, prompt/skip non-mutation, metadata sanitization, and continuation classification. These tests execute when Playwright Chromium can launch locally; they skip without a browser binary. |
 | Run manager and prompt bridge orchestration | Done | Covers unknown-field prompt creation, no fill before prompt response, prompt response resume, prompt-response fill path, save-for-reuse opt in/out, later learned-answer reuse, `lastUsedAt` updates, event status ordering, failure handling, and cancellation state. |
 | Prompt response route integration | Done | Covers route delegation through the run manager and prompt bridge while preserving prompt ownership validation and SSE event delivery. |
-| Final-submit safety and UI behavior tests | Not Started | Final-submit enforcement and dashboard behavior remain deferred until later runtime phases. |
+| Final-submit safety and step navigation tests | Done | Covers final-submit/apply/finish/complete/send/done classification, review and ambiguous classification, adapter guard no-click behavior, stop-before-submit review steps, privacy-safe review metadata, explicit one-step advance, blocked final-only advance, and advance route errors. Dashboard UI remains deferred to Phase 9. |
 
 ## Known Gaps
 
 - Synthetic browser-driving adapter tests are blocked inside the Codex sandbox because Chromium cannot register its macOS Mach port from this environment. Run `PLAYWRIGHT_BROWSERS_PATH=.cache/ms-playwright npm test` in a normal local terminal to execute them.
-- No final-submit safety enforcement or UI behavior tests exist yet because those runtime behaviors have not started.
+- Manual visible-browser verification of Phase 8 final-submit stop and one-step advance remains needed outside the Codex sandbox.
 - Real socket listener lifecycle is not covered in automated tests because the sandbox blocks binding to `127.0.0.1`; Fastify in-process injection covers route behavior.

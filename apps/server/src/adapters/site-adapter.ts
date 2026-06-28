@@ -6,19 +6,29 @@ import type {
 } from "../resolvers/index.js";
 
 export type ContinuationControlKind =
-  | "continue"
+  | "safe-next"
   | "final-submit"
-  | "unknown";
+  | "review"
+  | "ambiguous";
 
 export interface ContinuationControl {
   readonly kind: ContinuationControlKind;
   readonly label: string;
   readonly controlType: "button" | "link";
+  readonly buttonType?: "button" | "submit" | "reset" | "unknown";
+  readonly reason: string;
 }
 
 export interface FillFieldResult {
   readonly action: "filled" | "prompt-needed" | "skipped";
   readonly field: FieldDescriptor;
+  readonly metadata: BrowserStepMetadata;
+}
+
+export interface ClickContinuationControlResult {
+  readonly action: "clicked" | "blocked";
+  readonly control: ContinuationControl;
+  readonly reason: string;
   readonly metadata: BrowserStepMetadata;
 }
 
@@ -28,6 +38,8 @@ export interface BrowserStepMetadata {
     | "fill"
     | "skip"
     | "prompt-needed"
+    | "continue"
+    | "blocked-continuation"
     | "screenshot"
     | "failure";
   readonly pageUrl: string;
@@ -38,6 +50,8 @@ export interface BrowserStepMetadata {
   readonly reason?: string;
   readonly fieldCount?: number;
   readonly screenshotPath?: string;
+  readonly continuationLabel?: string;
+  readonly continuationKind?: ContinuationControlKind;
 }
 
 export interface SiteAdapter {
@@ -46,4 +60,8 @@ export interface SiteAdapter {
   classifyContinuationControls(
     page: Page
   ): Promise<readonly ContinuationControl[]>;
+  clickContinuationControl(
+    page: Page,
+    control: ContinuationControl
+  ): Promise<ClickContinuationControlResult>;
 }

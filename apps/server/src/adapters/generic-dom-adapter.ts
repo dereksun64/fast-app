@@ -8,6 +8,7 @@ import type {
 } from "../resolvers/index.js";
 import type {
   BrowserStepMetadata,
+  ClickContinuationControlResult,
   ContinuationControl,
   FillFieldResult,
   SiteAdapter
@@ -28,6 +29,15 @@ interface ScannedFieldControl {
 interface ScannedContinuationControl {
   readonly label: string;
   readonly controlType: "button" | "link";
+  readonly buttonType?: "button" | "submit" | "reset" | "unknown";
+  readonly nearbyContext?: string | undefined;
+}
+
+export interface ContinuationClassificationInput {
+  readonly label: string;
+  readonly controlType: "button" | "link";
+  readonly buttonType?: "button" | "submit" | "reset" | "unknown" | undefined;
+  readonly nearbyContext?: string | undefined;
 }
 
 export function createGenericDomAdapter(): SiteAdapter {
@@ -65,8 +75,26 @@ export function createGenericDomAdapter(): SiteAdapter {
 
       return controls.map((control) => ({
         ...control,
-        kind: classifyContinuationLabel(control.label)
+        ...classifyContinuationControl(control)
       }));
+    },
+
+    async clickContinuationControl(
+      page: Page,
+      control: ContinuationControl
+    ): Promise<ClickContinuationControlResult> {
+      if (control.kind !== "safe-next") {
+        return continuationClickResult("blocked", page, control, control.reason);
+      }
+
+      await continuationLocator(page, control).click();
+
+      return continuationClickResult(
+        "clicked",
+        page,
+        control,
+        "Clicked clear non-final step navigation."
+      );
     }
   };
 }
@@ -210,6 +238,34 @@ function fieldLocator(page: Page, field: FieldDescriptor): Locator {
   throw new Error("A fillable field needs a stable id, name, label, or placeholder.");
 }
 
+function continuationLocator(page: Page, control: ContinuationControl): Locator {
+  if (control.controlType === "link") {
+    return page.getByRole("link", { name: control.label, exact: true }).first();
+  }
+
+  return page.getByRole("button", { name: control.label, exact: true }).first();
+}
+
+function continuationClickResult(
+  action: ClickContinuationControlResult["action"],
+  page: Page,
+  control: ContinuationControl,
+  reason: string
+): ClickContinuationControlResult {
+  return {
+    action,
+    control,
+    reason,
+    metadata: {
+      action: action === "clicked" ? "continue" : "blocked-continuation",
+      pageUrl: page.url(),
+      reason,
+      continuationLabel: control.label,
+      continuationKind: control.kind
+    }
+  };
+}
+
 function findFieldOption(
   options: readonly FieldOptionDescriptor[] | undefined,
   answerValue: string
@@ -266,24 +322,69 @@ function toFieldDescriptor(
   };
 }
 
-function classifyContinuationLabel(
-  label: string
-): ContinuationControl["kind"] {
-  const normalized = label.trim().toLowerCase();
+export function classifyContinuationControl(
+  control: ContinuationClassificationInput
+): Pick<ContinuationControl, "kind" | "reason"> {
+  const normalizedLabel = normalizeControlText(control.label);
+  const normalizedContext = normalizeControlText(control.nearbyContext ?? "");
+  const hasFinalLabel = hasFinalSubmitLanguage(normalizedLabel);
+  const hasSafeNextLabel = hasSafeNextLanguage(normalizedLabel);
 
-  if (
-    /\b(submit|apply|finish|send application|complete application)\b/.test(
-      normalized
-    )
-  ) {
-    return "final-submit";
+  if (hasFinalLabel) {
+    return {
+      kind: "final-submit",
+      reason: "Control label uses final submission language."
+    };
   }
 
-  if (/\b(next|continue|save and continue|review)\b/.test(normalized)) {
-    return "continue";
+  if (hasReviewLanguage(normalizedLabel)) {
+    return {
+      kind: "review",
+      reason: "Control label leads to review or confirmation."
+    };
   }
 
-  return "unknown";
+  if (control.buttonType === "submit") {
+    return {
+      kind: "ambiguous",
+      reason: "Submit-type control is not safe to treat as one-step navigation."
+    };
+  }
+
+  if (hasSafeNextLabel && hasFinalSubmitLanguage(normalizedContext)) {
+    return {
+      kind: "ambiguous",
+      reason: "Nearby text includes final submission language."
+    };
+  }
+
+  if (hasSafeNextLabel) {
+    return {
+      kind: "safe-next",
+      reason: "Control label is clear non-final step navigation."
+    };
+  }
+
+  return {
+    kind: "ambiguous",
+    reason: "Control intent is not clear enough for automation."
+  };
+}
+
+function normalizeControlText(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function hasFinalSubmitLanguage(value: string): boolean {
+  return /\b(submit|apply|finish|complete|send|done)\b/.test(value);
+}
+
+function hasReviewLanguage(value: string): boolean {
+  return /\b(review|confirm|confirmation|preview)\b/.test(value);
+}
+
+function hasSafeNextLanguage(value: string): boolean {
+  return /\b(next|continue|save and continue)\b/.test(value);
 }
 
 function escapeCssAttribute(value: string): string {
@@ -568,7 +669,14 @@ const scanContinuationControlsInPage = new Function(`
         button instanceof HTMLInputElement
           ? button.value || button.getAttribute("aria-label") || ""
           : visibleText(button) || button.getAttribute("aria-label") || "",
-      controlType: "button"
+      controlType: "button",
+      buttonType:
+        button instanceof HTMLButtonElement
+          ? button.type || "submit"
+          : button instanceof HTMLInputElement
+            ? button.type || "unknown"
+            : "unknown",
+      nearbyContext: visibleText(button.closest("form, section, article, div"))
     }))
     .filter((button) => button.label.trim().length > 0);
 
@@ -576,7 +684,8 @@ const scanContinuationControlsInPage = new Function(`
     .filter((link) => isVisible(link))
     .map((link) => ({
       label: visibleText(link) || link.getAttribute("aria-label") || "",
-      controlType: "link"
+      controlType: "link",
+      nearbyContext: visibleText(link.closest("form, section, article, div"))
     }))
     .filter((link) => link.label.trim().length > 0);
 

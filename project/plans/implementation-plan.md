@@ -214,13 +214,13 @@ Steps:
 
 | Checkbox | Status | Step |
 |---|---|---|
-| [ ] | Not Started | Add button classification for clear next/continue actions versus final submit/apply/finish actions. |
-| [ ] | Not Started | Add hard guard that blocks automation from clicking final submit-like controls. |
-| [ ] | Not Started | Add review state after filling the current page even if no final submit button is detected. |
-| [ ] | Not Started | Allow optional one-step advance only for clearly safe next buttons and only from an explicit user action in the UI. |
-| [ ] | Not Started | Emit a prominent stop-before-submit event when the runner reaches review state. |
-| [ ] | Not Started | Add tests using synthetic forms with submit, apply, finish, review, next, and continue buttons. |
-| [ ] | Not Started | Add integration test that verifies no Playwright click occurs on final submit controls. |
+| [x] | Done | Add button classification for clear next/continue actions versus final submit/apply/finish actions. |
+| [x] | Done | Add hard guard that blocks automation from clicking final submit-like controls. |
+| [x] | Done | Add review state after filling the current page even if no final submit button is detected. |
+| [x] | Done | Allow optional one-step advance only for clearly safe next buttons and only from an explicit user action in the UI. |
+| [x] | Done | Emit a prominent stop-before-submit event when the runner reaches review state. |
+| [x] | Done | Add tests using synthetic forms with submit, apply, finish, review, next, and continue buttons. |
+| [x] | Done | Add integration test that verifies no Playwright click occurs on final submit controls. |
 
 ## Phase 9: Operator Dashboard
 

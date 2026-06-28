@@ -195,3 +195,21 @@
   - Prompt pauses are durable and observable through run status, current prompt, step history, and live events.
   - Memory reuse remains auditable without logging answer values in run steps or events.
   - Multi-page navigation, dashboard UI, and final-submit enforcement remain deferred to later phases.
+
+## 2026-06-28 - Phase 8 stop-before-submit and explicit advance policy
+
+- Status: Accepted
+- Context: V1 needs a hard safety boundary around navigation controls so automation can fill safe fields and support human-approved step navigation without clicking final submission controls.
+- Decision:
+  - Represent continuation controls as `safe-next`, `final-submit`, `review`, or `ambiguous`.
+  - Keep classification in the adapter/browser boundary because it can inspect labels, button type, and nearby context before any click.
+  - Add `clickContinuationControl` as the adapter-owned click path and hard-block every control that is not `safe-next`.
+  - Have the run manager classify controls after filling, persist sanitized review steps, and enter `waitingForReview` with a stop-before-submit event.
+  - Keep the reviewed browser session active so a local explicit one-step advance request can reuse the visible page.
+  - Expose a minimal `POST /runs/:id/advance` route that delegates to the run manager.
+  - Allow explicit advance only from `waitingForReview`, only when exactly one `safe-next` control is available, and only for one step before scanning/filling and stopping for review again.
+- Consequences:
+  - Final submit, apply, finish, complete, send, done, review, and ambiguous controls are not clicked by normal automation APIs.
+  - Dashboard UI can be added later without becoming the sole safety boundary.
+  - Review and blocked-advance steps avoid answer values and unnecessary personal data.
+  - Manual visible-browser verification remains required outside the Codex sandbox.

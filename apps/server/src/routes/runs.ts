@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import {
+  advanceRunResponseSchema,
   createRunRequestSchema,
   createRunResponseSchema,
   getRunResponseSchema,
@@ -66,6 +67,32 @@ export async function registerRunRoutes(
       currentPrompt: options.context.runRepository.getCurrentPrompt(run.id),
       steps: options.context.runRepository.listRunSteps(run.id)
     });
+  });
+
+  app.post<{ Params: RunRouteParams }>("/runs/:id/advance", async (request) => {
+    const run = options.context.runRepository.getRun(request.params.id);
+
+    if (!run) {
+      throw notFound("Run not found.");
+    }
+
+    let response;
+
+    try {
+      response = await options.context.runManager.advanceOneStep(run.id);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw badRequest(error.message);
+      }
+
+      throw error;
+    }
+
+    if (!response) {
+      throw notFound("Run not found.");
+    }
+
+    return parseResponse(advanceRunResponseSchema, response);
   });
 
   app.get<{ Params: RunRouteParams }>("/runs/:id/events", async (request, reply) => {

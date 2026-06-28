@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  advanceRunResponseSchema,
   createRunRequestSchema,
   createRunResponseSchema,
   getProfileResponseSchema,
@@ -71,6 +72,20 @@ describe("run API contracts", () => {
 
     expect(response.currentPrompt?.id).toBe("prompt_001");
     expect(response.steps).toHaveLength(1);
+  });
+
+  it("accepts an explicit one-step advance response", () => {
+    expect(
+      advanceRunResponseSchema.parse({
+        run: {
+          id: "run_001",
+          jobUrl: "https://jobs.example.com/apply/123",
+          status: "waitingForReview",
+          createdAt: "2026-06-27T10:00:00.000Z",
+          updatedAt: "2026-06-27T10:02:00.000Z"
+        }
+      }).run.status
+    ).toBe("waitingForReview");
   });
 });
 

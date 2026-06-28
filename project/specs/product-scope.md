@@ -39,3 +39,9 @@ Phase 6 does not create live prompts, resume paused runs, save newly prompted an
 Phase 7 adds the supervised run manager and prompt bridge. It starts one active browser-backed run for v1, scans the current page, resolves fields, fills only safe `fill` decisions, pauses on prompt decisions, resumes after valid prompt responses, saves learned answers only when reuse is explicitly approved, marks automatically reused learned answers with `lastUsedAt`, and stops in `waitingForReview`.
 
 Phase 7 does not add dashboard UI, multi-page navigation, final-submit clicking, CAPTCHA handling, hidden automation, or AI-generated answers.
+
+## Phase 8 Boundary
+
+Phase 8 strengthens stop-before-submit safety. The adapter classifies continuation controls as `safe-next`, `final-submit`, `review`, or `ambiguous`; final, review, and ambiguous controls are blocked from adapter-owned continuation clicks. The run manager records sanitized review steps after page filling and stays in `waitingForReview`.
+
+Phase 8 adds a minimal local API for explicit one-step advance. It only runs from `waitingForReview`, requires exactly one clearly safe next/continue control, advances at most one step, then scans/fills and returns to review. Phase 8 does not add dashboard UI, autonomous final submission, CAPTCHA handling, hidden automation, or AI-generated answers.

@@ -79,8 +79,13 @@ export const respondToPromptResponseSchema = z.object({
   prompt: promptSchema
 });
 
+export const advanceRunResponseSchema = z.object({
+  run: applicationRunSchema
+});
+
 export type CreateRunRequest = z.infer<typeof createRunRequestSchema>;
 export type CreateRunResponse = z.infer<typeof createRunResponseSchema>;
+export type AdvanceRunResponse = z.infer<typeof advanceRunResponseSchema>;
 export type GetRunResponse = z.infer<typeof getRunResponseSchema>;
 export type GetProfileResponse = z.infer<typeof getProfileResponseSchema>;
 export type UpdateProfileRequest = z.infer<typeof updateProfileRequestSchema>;

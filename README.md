@@ -356,6 +356,9 @@ The app should document:
 ## Safety Notes
 
 - Stop-before-submit is the default
+- Final submit, apply, finish, complete, send, and similar controls are classified as final-submit-like and are never clicked by automation
+- Ambiguous or review/confirmation controls stop in `waitingForReview` for a human decision
+- A local API may advance one clear non-final next/continue step only after an explicit user request, then the run scans/fills and stops for review again
 - CAPTCHAs and login interruptions may require manual action
 
 ## Expandability Seams
@@ -390,6 +393,7 @@ Planned resolver categories:
 - A user response resumes the run and stores memory
 - A later similar form reuses the stored answer when confidence is high
 - The final submit button is never clicked automatically in v1
+- Explicit one-step advance requires a clear non-final control and returns to review
 
 ### Manual QA
 
@@ -397,6 +401,7 @@ Planned resolver categories:
 - Verify the session persists across app restarts
 - Verify editing a learned answer changes later behavior
 - Verify ambiguous radio and select questions ask instead of guessing
+- Verify final submit/apply/finish controls remain for the human to click manually
 
 ## Assumptions
 
