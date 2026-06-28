@@ -134,13 +134,13 @@ Steps:
 
 | Checkbox | Status | Step |
 |---|---|---|
-| [ ] | Not Started | Define `FieldDescriptor`, `ResolverDecision`, and `FieldResolver` interfaces in shared or server domain code. |
-| [ ] | Not Started | Implement profile resolver for common aliases and split-name handling where profile data supports it. |
-| [ ] | Not Started | Implement learned-answer resolver requiring strong label/control-type match plus same host or strong nearby context. |
-| [ ] | Not Started | Implement resolver pipeline that stops at the first confident decision and returns prompt decisions otherwise. |
-| [ ] | Not Started | Add safety rules for checkboxes, radios, and selects so ambiguous options prompt instead of guessing. |
-| [ ] | Not Started | Add unit tests for profile resolution, learned-answer reuse, disabled memory exclusion, and low-confidence prompts. |
-| [ ] | Not Started | Add fixture examples for common application fields and ambiguous questions. |
+| [x] | Done | Define `FieldDescriptor`, `ResolverDecision`, and `FieldResolver` interfaces in shared or server domain code. |
+| [x] | Done | Implement profile resolver for common aliases and split-name handling where profile data supports it. |
+| [x] | Done | Implement learned-answer resolver requiring strong label/control-type match plus same host or strong nearby context. |
+| [x] | Done | Implement resolver pipeline that stops at the first confident decision and returns prompt decisions otherwise. |
+| [x] | Done | Add safety rules for checkboxes, radios, and selects so ambiguous options prompt instead of guessing. |
+| [x] | Done | Add unit tests for profile resolution, learned-answer reuse, disabled memory exclusion, and low-confidence prompts. |
+| [x] | Done | Add fixture examples for common application fields and ambiguous questions. |
 
 ## Phase 6: Browser Automation And Page Scanning
 

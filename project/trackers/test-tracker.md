@@ -16,9 +16,10 @@
 | Run repository | Done | Covers run lifecycle timestamps, current prompt tracking, prompt answers, step history, latest-step reads, screenshot metadata, missing-record behavior, and invalid stored prompt response rejection. |
 | Server app bootstrap | Done | Covers app creation without listening on a port, migration application, repository wiring, in-memory run-event publishing, local listen option parsing, and invalid port rejection. |
 | Server API routes | Done | Covers profile read/update, memory list/patch, run creation/status, prompt response persistence, invalid payloads, missing resources, run/prompt mismatch rejection, structured errors, and SSE event delivery. |
-| Application behavior tests | Not Started | Resolver, browser, prompt resume orchestration, learned-answer reuse decisions, and UI behavior remain deferred until later runtime phases. |
+| Resolver decision logic | Done | Covers profile alias resolution, split-name handling, missing split-name values, learned-answer strong matches, disabled memory exclusion, host/path/context mismatch behavior, option compatibility, low-confidence prompts, open-ended prompt behavior, and resolver ordering. |
+| Browser, prompt resume, and UI behavior tests | Not Started | Browser automation, prompt resume orchestration, saving new learned answers during runs, final-submit safety, and dashboard behavior remain deferred until later runtime phases. |
 
 ## Known Gaps
 
-- No resolver, browser, prompt resume orchestration, learned-answer reuse decision, or UI behavior tests exist yet because those runtime behaviors have not started.
+- No browser, prompt resume orchestration, final-submit safety, or UI behavior tests exist yet because those runtime behaviors have not started.
 - Real socket listener lifecycle is not covered in automated tests because the sandbox blocks binding to `127.0.0.1`; Fastify in-process injection covers route behavior.

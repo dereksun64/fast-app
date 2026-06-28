@@ -10,7 +10,7 @@ This is a human-supervised autofill tool, not a fully autonomous job application
 
 ## Current Status
 
-The repository currently includes Phase 1 and Phase 2 foundation work, Phase 3 persistence work, and Phase 4 local API work:
+The repository currently includes Phase 1 and Phase 2 foundation work, Phase 3 persistence work, Phase 4 local API work, and Phase 5 resolver decision work:
 
 - npm workspace setup
 - TypeScript project references
@@ -24,9 +24,10 @@ The repository currently includes Phase 1 and Phase 2 foundation work, Phase 3 p
 - validated routes for profile, learned-answer memory, run creation/status, prompt responses, and run events
 - in-memory run event publisher and Server-Sent Events endpoint
 - stub runner that creates observable pending runs without launching browser automation
+- pure resolver modules for profile alias matching, split-name handling, enabled learned-answer reuse, option safety, and conservative prompt/skip decisions
 - planning and tracking documents
 
-No dashboard behavior, browser automation, or resolver logic has been implemented yet.
+No dashboard behavior, browser automation, real prompt resume orchestration, or final-submit behavior has been implemented yet.
 
 ## Scope
 

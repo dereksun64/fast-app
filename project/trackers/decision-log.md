@@ -141,3 +141,20 @@
   - The future dashboard can observe status and prompt-answer events without polling.
   - Event payloads stay aligned with shared schemas and avoid exposing repository internals.
   - Real run management, prompt pause/resume, memory-save decisions, and browser automation remain safely deferred.
+
+## 2026-06-28 - Phase 5 resolver order and conservative matching
+
+- Status: Accepted
+- Context: Browser automation will later need one deterministic decision layer for whether a scanned field can be filled safely.
+- Decision:
+  - Keep resolver logic in pure server modules under `apps/server/src/resolvers`.
+  - Represent scanned controls as plain `FieldDescriptor` data and return discriminated `ResolverDecision` values: `fill`, `prompt`, or `skip`.
+  - Try profile aliases first, then enabled learned answers, then conservative prompt fallbacks.
+  - Use exact or strong normalized alias matching for profile fields, with explicit first-name and last-name splitting from `fullName`.
+  - Reuse learned answers only when the record is enabled, control types match, label similarity is at least `0.9`, and either host/path match or nearby context similarity is at least `0.8`.
+  - Fill option controls only when a saved value exactly matches a visible option or an obvious boolean yes/no option.
+  - Prompt for open-ended textareas, ambiguous option sets, unknown labels, missing profile values, and low-confidence matches.
+- Consequences:
+  - Later page scanning and browser filling phases can call one resolver pipeline without touching persistence, routes, React, or Playwright.
+  - Disabled learned answers remain stored but excluded from automatic reuse.
+  - The app continues to prefer prompting over guessing and does not generate open-ended application answers.
