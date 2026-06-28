@@ -107,14 +107,14 @@ Steps:
 
 | Checkbox | Status | Step |
 |---|---|---|
-| [ ] | Not Started | Create Fastify server bootstrap with explicit plugin registration and startup validation. |
-| [ ] | Not Started | Add `/profile` GET and PUT routes backed by the profile repository. |
-| [ ] | Not Started | Add `/memory` GET and `/memory/:id` PATCH routes for editing or disabling learned answers. |
-| [ ] | Not Started | Add `/runs` POST route that creates a pending run record but initially uses a stub runner. |
-| [ ] | Not Started | Add `/runs/:id` GET route that returns current run status, steps, and pending prompt summary. |
-| [ ] | Not Started | Add `/runs/:id/prompts/:promptId/respond` route that validates prompt responses and persists them. |
-| [ ] | Not Started | Add SSE endpoint for run step updates, prompt notifications, status changes, and errors. |
-| [ ] | Not Started | Add API integration tests for valid requests, invalid payloads, missing resources, and event delivery. |
+| [x] | Done | Create Fastify server bootstrap with explicit plugin registration and startup validation. |
+| [x] | Done | Add `/profile` GET and PUT routes backed by the profile repository. |
+| [x] | Done | Add `/memory` GET and `/memory/:id` PATCH routes for editing or disabling learned answers. |
+| [x] | Done | Add `/runs` POST route that creates a pending run record but initially uses a stub runner. |
+| [x] | Done | Add `/runs/:id` GET route that returns current run status, steps, and pending prompt summary. |
+| [x] | Done | Add `/runs/:id/prompts/:promptId/respond` route that validates prompt responses and persists them. |
+| [x] | Done | Add SSE endpoint for run step updates, prompt notifications, status changes, and errors. |
+| [x] | Done | Add API integration tests for valid requests, invalid payloads, missing resources, and event delivery. |
 
 ## Phase 5: Resolver Pipeline And Conservative Matching
 

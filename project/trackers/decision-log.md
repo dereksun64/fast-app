@@ -111,3 +111,33 @@
   - Future routes and run-manager code can persist lifecycle state without writing SQL directly.
   - Prompt and step history remain queryable for operator review and debugging.
   - Phase 3 persistence is complete without adding API, UI, browser automation, or resolver behavior.
+
+## 2026-06-28 - Phase 4 Fastify API bootstrap and routes
+
+- Status: Accepted
+- Context: The persistence repositories needed a local API boundary for the future dashboard without adding browser automation or resolver behavior early.
+- Decision:
+  - Add Fastify as the server web framework dependency because the README, implementation plan, and coding standards already selected Fastify for local API routing.
+  - Add `createServerApp` as an app factory that validates runtime paths, opens SQLite, applies migrations, wires repositories, creates an in-memory event publisher, and registers routes without listening on a port.
+  - Keep the server entry point limited to local startup with `127.0.0.1:4317` defaults and `FAST_APP_HOST` / `FAST_APP_PORT` overrides.
+  - Keep route handlers thin and validate request/response payloads with shared Zod schemas.
+  - Return structured API errors without echoing sensitive submitted values.
+- Consequences:
+  - API integration tests can use isolated temporary databases and Fastify in-process injection.
+  - Server startup now fails early for invalid listen port or missing runtime path configuration.
+  - Browser automation, resolver behavior, dashboard state, and prompt resume orchestration remain deferred.
+
+## 2026-06-28 - Phase 4 stub runner and run event stream
+
+- Status: Accepted
+- Context: Phase 4 needs observable run creation and live status delivery before real browser workflow exists.
+- Decision:
+  - Add a stub runner that creates a pending run, records an initial step, and publishes shared `RunEvent` payloads.
+  - Do not launch Playwright, scan pages, fill fields, click controls, or submit applications in Phase 4.
+  - Use an in-memory event publisher for v1 local run events.
+  - Expose `GET /runs/:id/events` as a Server-Sent Events endpoint that serializes shared `RunEvent` payloads.
+  - End the SSE stream on terminal run status events or run errors.
+- Consequences:
+  - The future dashboard can observe status and prompt-answer events without polling.
+  - Event payloads stay aligned with shared schemas and avoid exposing repository internals.
+  - Real run management, prompt pause/resume, memory-save decisions, and browser automation remain safely deferred.

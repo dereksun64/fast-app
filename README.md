@@ -10,7 +10,7 @@ This is a human-supervised autofill tool, not a fully autonomous job application
 
 ## Current Status
 
-The repository currently includes Phase 1 and Phase 2 foundation work, plus Phase 3 persistence work:
+The repository currently includes Phase 1 and Phase 2 foundation work, Phase 3 persistence work, and Phase 4 local API work:
 
 - npm workspace setup
 - TypeScript project references
@@ -20,9 +20,13 @@ The repository currently includes Phase 1 and Phase 2 foundation work, plus Phas
 - server runtime path configuration
 - SQLite connection management, migration runner, and initial persistence schema
 - server-side repositories for profile data, learned answers, application runs, prompts, step history, and screenshot metadata
+- Fastify local API bootstrap with explicit route registration
+- validated routes for profile, learned-answer memory, run creation/status, prompt responses, and run events
+- in-memory run event publisher and Server-Sent Events endpoint
+- stub runner that creates observable pending runs without launching browser automation
 - planning and tracking documents
 
-No API routes, dashboard behavior, browser automation, or resolver logic have been implemented yet.
+No dashboard behavior, browser automation, or resolver logic has been implemented yet.
 
 ## Scope
 
@@ -245,7 +249,19 @@ fast-app/
 - `GET /profile` and `PUT /profile`
 - `GET /memory` to list learned answers
 - `PATCH /memory/:id` to edit or disable a learned answer
-- A live events endpoint for step updates and prompt notifications
+- `GET /runs/:id/events` for live run events using Server-Sent Events
+
+## Local Server
+
+Run the local API with:
+
+```bash
+npm run dev:server
+```
+
+By default the server listens on `127.0.0.1:4317`. Override with `FAST_APP_HOST` and `FAST_APP_PORT` when needed.
+
+Phase 4 run creation uses a stub runner. It creates a pending run, records an initial step, and publishes events, but it does not open a browser, scan pages, fill fields, click buttons, or submit applications.
 
 ## Matching and Memory Rules
 
