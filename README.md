@@ -10,15 +10,19 @@ This is a human-supervised autofill tool, not a fully autonomous job application
 
 ## Current Status
 
-The repository currently includes Phase 1 foundation work only:
+The repository currently includes Phase 1 and Phase 2 foundation work, plus Phase 3 persistence work:
 
 - npm workspace setup
 - TypeScript project references
-- placeholder server, client, and shared entry points
+- placeholder server and client entry points
+- shared schemas, types, constants, and normalization helpers
 - local-only runtime path conventions
+- server runtime path configuration
+- SQLite connection management, migration runner, and initial persistence schema
+- server-side repositories for profile data, learned answers, application runs, prompts, step history, and screenshot metadata
 - planning and tracking documents
 
-No API routes, dashboard behavior, database schema, browser automation, or resolver logic have been implemented yet.
+No API routes, dashboard behavior, browser automation, or resolver logic have been implemented yet.
 
 ## Scope
 

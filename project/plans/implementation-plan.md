@@ -80,14 +80,14 @@ Steps:
 
 | Checkbox | Status | Step |
 |---|---|---|
-| [ ] | Not Started | Add server configuration for database path, browser profile path, logs path, screenshots path, and allowed local resume paths. |
-| [ ] | Not Started | Create migration runner that applies ordered migrations once and enables SQLite foreign keys. |
-| [ ] | Not Started | Add tables for profile, learned answers, application runs, prompts, run steps, and optional screenshot metadata. |
-| [ ] | Not Started | Implement profile repository with get/update behavior validated against shared schemas. |
-| [ ] | Not Started | Implement memory repository with list, create, update, disable, and last-used update behavior. |
-| [ ] | Not Started | Implement run repository with create, status update, current prompt tracking, step append, and completion/failure timestamps. |
-| [ ] | Not Started | Add tests that run migrations against a temporary database. |
-| [ ] | Not Started | Add repository tests for profile persistence, memory disabling, prompt persistence, and run lifecycle updates. |
+| [x] | Done | Add server configuration for database path, browser profile path, logs path, screenshots path, and allowed local resume paths. |
+| [x] | Done | Create migration runner that applies ordered migrations once and enables SQLite foreign keys. |
+| [x] | Done | Add tables for profile, learned answers, application runs, prompts, run steps, and optional screenshot metadata. |
+| [x] | Done | Implement profile repository with get/update behavior validated against shared schemas. |
+| [x] | Done | Implement memory repository with list, create, update, disable, and last-used update behavior. |
+| [x] | Done | Implement run repository with create, status update, current prompt tracking, step append, and completion/failure timestamps. |
+| [x] | Done | Add tests that run migrations against a temporary database. |
+| [x] | Done | Add repository tests for profile persistence, memory disabling, prompt persistence, and run lifecycle updates. |
 
 ## Phase 4: Server API And Event Stream
 

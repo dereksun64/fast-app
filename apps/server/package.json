@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@fast-app/shared": "0.1.0"
+    "@fast-app/shared": "0.1.0",
+    "better-sqlite3": "^12.11.1"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
