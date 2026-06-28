@@ -42,12 +42,17 @@ The phase-specific prompt you generate must require the implementing agent to ac
 9. Prefer prompting over guessing when confidence is low.
 10. Keep privacy-sensitive data out of logs, screenshots, commits, and unnecessary output.
 
-The generated phase prompt must ask the implementing agent to offer me this choice before implementation:
+The generated phase prompt must strongly emphasize the work-mode choice before implementation. This is mandatory, not optional: the implementing agent must present the two choices near the top of its first response and must not begin code changes until I either choose a mode or already included a mode in my request.
 
 - "One-shot the whole phase" means implement the entire phase in one pass, including tests, docs, and verification, while still keeping changes reviewable.
 - "Continue step by step" means implement one small step at a time, explain it, ask for confirmation or wait for my instruction, then continue.
 
-If I do not choose, the implementing agent should default to step-by-step for learning-heavy or high-risk phases, and one-shot only for small tooling or documentation phases.
+The generated phase prompt must require the implementing agent to show the choice exactly like this:
+
+1. `One-shot the whole phase`: implement the full phase in one pass, including tests, docs, verification, and a concise final explanation.
+2. `Continue step by step`: implement one small reviewable step at a time, explain that step, then wait for confirmation or further instruction before continuing.
+
+The generated phase prompt must also require the implementing agent to state the default mode and briefly explain why. If I do not choose, default to `Continue step by step` for learning-heavy, high-risk, data-sensitive, browser-automation, prompt-flow, persistence, shared-contract, or architecture-shaping phases. Choose `One-shot the whole phase` by default only for small, low-risk tooling or documentation phases.
 
 The generated phase prompt must tell the implementing agent to include learning support:
 
@@ -96,7 +101,12 @@ Tell the implementing agent how to inspect previous changes, existing patterns, 
 
 ## Work Mode Choice
 
-Ask whether to one-shot the whole phase or continue step by step. Include the default behavior if no choice is provided.
+Make this section prominent and place it before implementation instructions. Require the implementing agent to ask me to choose exactly one of these modes before any code changes:
+
+1. `One-shot the whole phase`
+2. `Continue step by step`
+
+Explain both modes in plain language. Tell the implementing agent to pause for my answer unless I already selected a mode in the same request. Include the default mode and the reason for that default if I do not choose.
 
 ## Implementation Boundaries
 
