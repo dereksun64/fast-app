@@ -434,7 +434,7 @@ function failRun(
     runId,
     status: "failed",
     level: "error",
-    message: "Run failed before completion."
+    message: `Run failed before completion: ${sanitizeFailureMessage(message)}`
   });
   publishStatus(options, runId, "failed", now);
   options.eventPublisher.publish({
@@ -446,4 +446,8 @@ function failRun(
   });
 
   return undefined;
+}
+
+function sanitizeFailureMessage(message: string): string {
+  return message.replace(/\s+/g, " ").trim().slice(0, 300);
 }

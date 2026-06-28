@@ -291,256 +291,7 @@ function escapeCssAttribute(value: string): string {
 }
 
 async function scanFieldControls(page: Page): Promise<readonly ScannedFieldControl[]> {
-  const fields = await page.evaluate(() => {
-    const textInputTypes = new Set([
-      "",
-      "text",
-      "email",
-      "tel",
-      "url",
-      "number",
-      "search"
-    ]);
-
-    function visibleText(element: Element | null | undefined): string {
-      if (!element) {
-        return "";
-      }
-
-      const text = (element.textContent ?? "").replace(/\s+/g, " ").trim();
-
-      return text.slice(0, 500);
-    }
-
-    function isVisible(element: HTMLElement): boolean {
-      const style = window.getComputedStyle(element);
-      const rect = element.getBoundingClientRect();
-
-      return (
-        style.visibility !== "hidden" &&
-        style.display !== "none" &&
-        rect.width > 0 &&
-        rect.height > 0
-      );
-    }
-
-    function isScannable(element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): boolean {
-      return !element.disabled && isVisible(element);
-    }
-
-    function textFromIds(ids: string | null): string {
-      if (!ids) {
-        return "";
-      }
-
-      return ids
-        .split(/\s+/)
-        .map((id) => visibleText(document.getElementById(id)))
-        .filter(Boolean)
-        .join(" ");
-    }
-
-    function labelFor(element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): string {
-      const labels = Array.from(element.labels ?? [])
-        .map((label) => visibleText(label))
-        .filter(Boolean)
-        .join(" ");
-      const ariaLabel = element.getAttribute("aria-label")?.trim() ?? "";
-      const labelledBy = textFromIds(element.getAttribute("aria-labelledby"));
-      const placeholder =
-        "placeholder" in element ? element.placeholder.trim() : "";
-
-      return (
-        labels ||
-        ariaLabel ||
-        labelledBy ||
-        placeholder ||
-        element.getAttribute("name") ||
-        element.id ||
-        ""
-      );
-    }
-
-    function legendFor(element: Element): string {
-      return visibleText(element.closest("fieldset")?.querySelector("legend"));
-    }
-
-    function fieldsetQuestionFor(element: Element): string {
-      const fieldset = element.closest("fieldset");
-
-      if (!fieldset) {
-        return "";
-      }
-
-      const questionElement = Array.from(
-        fieldset.querySelectorAll("p, h1, h2, h3, h4, h5, h6")
-      ).find((candidate) => visibleText(candidate).length > 0);
-
-      return visibleText(questionElement);
-    }
-
-    function previousText(element: Element): string {
-      let sibling = element.previousElementSibling;
-
-      while (sibling) {
-        const text = visibleText(sibling);
-
-        if (text) {
-          return text;
-        }
-
-        sibling = sibling.previousElementSibling;
-      }
-
-      return "";
-    }
-
-    function nearbyContext(element: Element, label: string): string | undefined {
-      const context = [
-        legendFor(element),
-        previousText(element),
-        visibleText(element.closest("section, article, form, fieldset, div")),
-        label
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, 500);
-
-      return context || undefined;
-    }
-
-    function optionFor(input: HTMLInputElement): { label: string; value?: string } {
-      const label = labelFor(input);
-
-      return {
-        label,
-        value: input.value || label
-      };
-    }
-
-    const fields: ScannedFieldControl[] = [];
-    const radioInputs = Array.from(
-      document.querySelectorAll<HTMLInputElement>('input[type="radio"]')
-    ).filter(isScannable);
-    const radioGroups = new Map<string, HTMLInputElement[]>();
-
-    for (const input of radioInputs) {
-      const key =
-        input.name ||
-        input.closest("fieldset")?.querySelector("legend")?.textContent?.trim() ||
-        input.id;
-
-      if (!key) {
-        continue;
-      }
-
-      radioGroups.set(key, [...(radioGroups.get(key) ?? []), input]);
-    }
-
-    for (const input of Array.from(document.querySelectorAll<HTMLInputElement>("input"))) {
-      const type = input.type.toLowerCase();
-
-      if (!isScannable(input)) {
-        continue;
-      }
-
-      if (textInputTypes.has(type)) {
-        const label = labelFor(input);
-        fields.push({
-          id: input.id || undefined,
-          name: input.name || undefined,
-          label,
-          controlType: "text",
-          placeholder: input.placeholder || undefined,
-          ariaLabel: input.getAttribute("aria-label") ?? undefined,
-          nearbyContext: nearbyContext(input, label),
-          required: input.required || undefined
-        });
-      }
-
-      if (type === "checkbox") {
-        const label = labelFor(input);
-        fields.push({
-          id: input.id || undefined,
-          name: input.name || undefined,
-          label,
-          controlType: "checkbox",
-          ariaLabel: input.getAttribute("aria-label") ?? undefined,
-          nearbyContext: nearbyContext(input, label),
-          options: [optionFor(input)],
-          required: input.required || undefined
-        });
-      }
-    }
-
-    for (const textarea of Array.from(document.querySelectorAll<HTMLTextAreaElement>("textarea"))) {
-      if (!isScannable(textarea)) {
-        continue;
-      }
-
-      const label = labelFor(textarea);
-      fields.push({
-        id: textarea.id || undefined,
-        name: textarea.name || undefined,
-        label,
-        controlType: "textarea",
-        placeholder: textarea.placeholder || undefined,
-        ariaLabel: textarea.getAttribute("aria-label") ?? undefined,
-        nearbyContext: nearbyContext(textarea, label),
-        required: textarea.required || undefined
-      });
-    }
-
-    for (const select of Array.from(document.querySelectorAll<HTMLSelectElement>("select"))) {
-      if (!isScannable(select)) {
-        continue;
-      }
-
-      const label = labelFor(select);
-      fields.push({
-        id: select.id || undefined,
-        name: select.name || undefined,
-        label,
-        controlType: "select",
-        ariaLabel: select.getAttribute("aria-label") ?? undefined,
-        nearbyContext: nearbyContext(select, label),
-        options: Array.from(select.options)
-          .filter((option) => !option.disabled && option.text.trim().length > 0)
-          .map((option) => ({
-            label: option.text.trim(),
-            value: option.getAttribute("value") ?? option.text.trim()
-          })),
-        required: select.required || undefined
-      });
-    }
-
-    for (const [key, inputs] of radioGroups) {
-      const firstInput = inputs[0];
-
-      if (!firstInput) {
-        continue;
-      }
-
-      const legend = legendFor(firstInput);
-      const labelledBy = textFromIds(firstInput.getAttribute("aria-labelledby"));
-      const fieldsetQuestion = fieldsetQuestionFor(firstInput);
-      const label = labelledBy || fieldsetQuestion || legend || firstInput.name || key;
-      fields.push({
-        id: firstInput.id || undefined,
-        name: firstInput.name || undefined,
-        label,
-        controlType: "radio",
-        ariaLabel: firstInput.getAttribute("aria-label") ?? undefined,
-        nearbyContext: nearbyContext(firstInput, label),
-        options: inputs.map(optionFor),
-        required: inputs.some((input) => input.required) || undefined
-      });
-    }
-
-    return fields;
-  });
+  const fields = await page.evaluate(scanFieldControlsInPage);
 
   return fields.map((field) => ({
     ...field,
@@ -554,46 +305,280 @@ async function scanFieldControls(page: Page): Promise<readonly ScannedFieldContr
 async function scanContinuationControls(
   page: Page
 ): Promise<readonly ScannedContinuationControl[]> {
-  return page.evaluate(() => {
-    function visibleText(element: Element): string {
-      return (element.textContent ?? "").replace(/\s+/g, " ").trim();
-    }
-
-    function isVisible(element: HTMLElement): boolean {
-      const style = window.getComputedStyle(element);
-      const rect = element.getBoundingClientRect();
-
-      return (
-        style.visibility !== "hidden" &&
-        style.display !== "none" &&
-        rect.width > 0 &&
-        rect.height > 0
-      );
-    }
-
-    const buttons = Array.from(
-      document.querySelectorAll<HTMLButtonElement | HTMLInputElement>(
-        "button, input[type='submit'], input[type='button']"
-      )
-    )
-      .filter((button) => !button.disabled && isVisible(button))
-      .map((button) => ({
-        label:
-          button instanceof HTMLInputElement
-            ? button.value || button.getAttribute("aria-label") || ""
-            : visibleText(button) || button.getAttribute("aria-label") || "",
-        controlType: "button" as const
-      }))
-      .filter((button) => button.label.trim().length > 0);
-
-    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>("a"))
-      .filter((link) => isVisible(link))
-      .map((link) => ({
-        label: visibleText(link) || link.getAttribute("aria-label") || "",
-        controlType: "link" as const
-      }))
-      .filter((link) => link.label.trim().length > 0);
-
-    return [...buttons, ...links];
-  });
+  return page.evaluate(scanContinuationControlsInPage);
 }
+
+const scanFieldControlsInPage = new Function(`
+  const textInputTypes = new Set(["", "text", "email", "tel", "url", "number", "search"]);
+
+  function visibleText(element) {
+    if (!element) {
+      return "";
+    }
+
+    return (element.textContent || "").replace(/\\s+/g, " ").trim().slice(0, 500);
+  }
+
+  function isVisible(element) {
+    const style = window.getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+
+    return style.visibility !== "hidden" &&
+      style.display !== "none" &&
+      rect.width > 0 &&
+      rect.height > 0;
+  }
+
+  function isScannable(element) {
+    return !element.disabled && isVisible(element);
+  }
+
+  function textFromIds(ids) {
+    if (!ids) {
+      return "";
+    }
+
+    return ids
+      .split(/\\s+/)
+      .map((id) => visibleText(document.getElementById(id)))
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  function labelFor(element) {
+    const labels = Array.from(element.labels || [])
+      .map((label) => visibleText(label))
+      .filter(Boolean)
+      .join(" ");
+    const ariaLabel = (element.getAttribute("aria-label") || "").trim();
+    const labelledBy = textFromIds(element.getAttribute("aria-labelledby"));
+    const placeholder = "placeholder" in element ? element.placeholder.trim() : "";
+
+    return labels ||
+      ariaLabel ||
+      labelledBy ||
+      placeholder ||
+      element.getAttribute("name") ||
+      element.id ||
+      "";
+  }
+
+  function legendFor(element) {
+    return visibleText(element.closest("fieldset")?.querySelector("legend"));
+  }
+
+  function fieldsetQuestionFor(element) {
+    const fieldset = element.closest("fieldset");
+
+    if (!fieldset) {
+      return "";
+    }
+
+    const questionElement = Array.from(
+      fieldset.querySelectorAll("p, h1, h2, h3, h4, h5, h6")
+    ).find((candidate) => visibleText(candidate).length > 0);
+
+    return visibleText(questionElement);
+  }
+
+  function previousText(element) {
+    let sibling = element.previousElementSibling;
+
+    while (sibling) {
+      const text = visibleText(sibling);
+
+      if (text) {
+        return text;
+      }
+
+      sibling = sibling.previousElementSibling;
+    }
+
+    return "";
+  }
+
+  function nearbyContext(element, label) {
+    const context = [
+      legendFor(element),
+      previousText(element),
+      visibleText(element.closest("section, article, form, fieldset, div")),
+      label
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\\s+/g, " ")
+      .trim()
+      .slice(0, 500);
+
+    return context || undefined;
+  }
+
+  function optionFor(input) {
+    const label = labelFor(input);
+
+    return {
+      label,
+      value: input.value || label
+    };
+  }
+
+  const fields = [];
+  const radioInputs = Array.from(
+    document.querySelectorAll('input[type="radio"]')
+  ).filter(isScannable);
+  const radioGroups = new Map();
+
+  for (const input of radioInputs) {
+    const key =
+      input.name ||
+      input.closest("fieldset")?.querySelector("legend")?.textContent?.trim() ||
+      input.id;
+
+    if (!key) {
+      continue;
+    }
+
+    radioGroups.set(key, [...(radioGroups.get(key) || []), input]);
+  }
+
+  for (const input of Array.from(document.querySelectorAll("input"))) {
+    const type = input.type.toLowerCase();
+
+    if (!isScannable(input)) {
+      continue;
+    }
+
+    if (textInputTypes.has(type)) {
+      const label = labelFor(input);
+      fields.push({
+        id: input.id || undefined,
+        name: input.name || undefined,
+        label,
+        controlType: "text",
+        placeholder: input.placeholder || undefined,
+        ariaLabel: input.getAttribute("aria-label") || undefined,
+        nearbyContext: nearbyContext(input, label),
+        required: input.required || undefined
+      });
+    }
+
+    if (type === "checkbox") {
+      const label = labelFor(input);
+      fields.push({
+        id: input.id || undefined,
+        name: input.name || undefined,
+        label,
+        controlType: "checkbox",
+        ariaLabel: input.getAttribute("aria-label") || undefined,
+        nearbyContext: nearbyContext(input, label),
+        options: [optionFor(input)],
+        required: input.required || undefined
+      });
+    }
+  }
+
+  for (const textarea of Array.from(document.querySelectorAll("textarea"))) {
+    if (!isScannable(textarea)) {
+      continue;
+    }
+
+    const label = labelFor(textarea);
+    fields.push({
+      id: textarea.id || undefined,
+      name: textarea.name || undefined,
+      label,
+      controlType: "textarea",
+      placeholder: textarea.placeholder || undefined,
+      ariaLabel: textarea.getAttribute("aria-label") || undefined,
+      nearbyContext: nearbyContext(textarea, label),
+      required: textarea.required || undefined
+    });
+  }
+
+  for (const select of Array.from(document.querySelectorAll("select"))) {
+    if (!isScannable(select)) {
+      continue;
+    }
+
+    const label = labelFor(select);
+    fields.push({
+      id: select.id || undefined,
+      name: select.name || undefined,
+      label,
+      controlType: "select",
+      ariaLabel: select.getAttribute("aria-label") || undefined,
+      nearbyContext: nearbyContext(select, label),
+      options: Array.from(select.options)
+        .filter((option) => !option.disabled && option.text.trim().length > 0)
+        .map((option) => ({
+          label: option.text.trim(),
+          value: option.getAttribute("value") || option.text.trim()
+        })),
+      required: select.required || undefined
+    });
+  }
+
+  for (const [key, inputs] of radioGroups) {
+    const firstInput = inputs[0];
+
+    if (!firstInput) {
+      continue;
+    }
+
+    const legend = legendFor(firstInput);
+    const labelledBy = textFromIds(firstInput.getAttribute("aria-labelledby"));
+    const fieldsetQuestion = fieldsetQuestionFor(firstInput);
+    const label = labelledBy || fieldsetQuestion || legend || firstInput.name || key;
+    fields.push({
+      id: firstInput.id || undefined,
+      name: firstInput.name || undefined,
+      label,
+      controlType: "radio",
+      ariaLabel: firstInput.getAttribute("aria-label") || undefined,
+      nearbyContext: nearbyContext(firstInput, label),
+      options: inputs.map(optionFor),
+      required: inputs.some((input) => input.required) || undefined
+    });
+  }
+
+  return fields;
+`) as unknown as () => readonly ScannedFieldControl[];
+
+const scanContinuationControlsInPage = new Function(`
+  function visibleText(element) {
+    return (element.textContent || "").replace(/\\s+/g, " ").trim();
+  }
+
+  function isVisible(element) {
+    const style = window.getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+
+    return style.visibility !== "hidden" &&
+      style.display !== "none" &&
+      rect.width > 0 &&
+      rect.height > 0;
+  }
+
+  const buttons = Array.from(
+    document.querySelectorAll("button, input[type='submit'], input[type='button']")
+  )
+    .filter((button) => !button.disabled && isVisible(button))
+    .map((button) => ({
+      label:
+        button instanceof HTMLInputElement
+          ? button.value || button.getAttribute("aria-label") || ""
+          : visibleText(button) || button.getAttribute("aria-label") || "",
+      controlType: "button"
+    }))
+    .filter((button) => button.label.trim().length > 0);
+
+  const links = Array.from(document.querySelectorAll("a"))
+    .filter((link) => isVisible(link))
+    .map((link) => ({
+      label: visibleText(link) || link.getAttribute("aria-label") || "",
+      controlType: "link"
+    }))
+    .filter((link) => link.label.trim().length > 0);
+
+  return [...buttons, ...links];
+`) as unknown as () => readonly ScannedContinuationControl[];
