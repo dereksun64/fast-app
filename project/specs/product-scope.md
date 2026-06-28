@@ -33,3 +33,9 @@ Phase 5 adds pure resolver decisions for scanned field descriptors. It can decid
 Phase 6 adds the browser and page-scanning layer. It can launch a persistent visible Playwright browser, navigate to validated http/https URLs, scan common controls into existing resolver field descriptors, fill only resolver `fill` decisions, classify continuation controls as data, and capture local screenshot files when requested.
 
 Phase 6 does not create live prompts, resume paused runs, save newly prompted answers, manage multi-page workflows, click next/continue controls, or click final submit/apply/finish controls.
+
+## Phase 7 Boundary
+
+Phase 7 adds the supervised run manager and prompt bridge. It starts one active browser-backed run for v1, scans the current page, resolves fields, fills only safe `fill` decisions, pauses on prompt decisions, resumes after valid prompt responses, saves learned answers only when reuse is explicitly approved, marks automatically reused learned answers with `lastUsedAt`, and stops in `waitingForReview`.
+
+Phase 7 does not add dashboard UI, multi-page navigation, final-submit clicking, CAPTCHA handling, hidden automation, or AI-generated answers.

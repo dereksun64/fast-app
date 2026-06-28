@@ -187,14 +187,14 @@ Steps:
 
 | Checkbox | Status | Step |
 |---|---|---|
-| [ ] | Not Started | Define explicit run lifecycle states: pending, starting, scanning, filling, prompting, waitingForReview, failed, canceled, completed. |
-| [ ] | Not Started | Implement run manager that starts one browser-backed run and publishes each step. |
-| [ ] | Not Started | Implement prompt bridge that creates a prompt, pauses the run, waits for response, and resumes safely. |
-| [ ] | Not Started | Persist user-confirmed prompt answers as learned answers only when the user chooses reuse. |
-| [ ] | Not Started | Mark learned answers `lastUsedAt` when automatically reused. |
-| [ ] | Not Started | Add cancel/fail handling that leaves the browser visible and records final run state. |
-| [ ] | Not Started | Add integration tests for unknown field prompt creation, response resume, memory save, and later reuse. |
-| [ ] | Not Started | Add tests proving uncertain fields do not get filled without a prompt response. |
+| [x] | Done | Define explicit run lifecycle states: pending, starting, scanning, filling, prompting, waitingForReview, failed, canceled, completed. |
+| [x] | Done | Implement run manager that starts one browser-backed run and publishes each step. |
+| [x] | Done | Implement prompt bridge that creates a prompt, pauses the run, waits for response, and resumes safely. |
+| [x] | Done | Persist user-confirmed prompt answers as learned answers only when the user chooses reuse. |
+| [x] | Done | Mark learned answers `lastUsedAt` when automatically reused. |
+| [x] | Done | Add cancel/fail handling that leaves the browser visible and records final run state. |
+| [x] | Done | Add integration tests for unknown field prompt creation, response resume, memory save, and later reuse. |
+| [x] | Done | Add tests proving uncertain fields do not get filled without a prompt response. |
 
 ## Phase 8: Stop-Before-Submit And Step Navigation Safety
 

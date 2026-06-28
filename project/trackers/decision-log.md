@@ -176,3 +176,22 @@
   - Later run-manager work can compose browser scanning, resolver decisions, prompts, memory updates, and events without giving the browser layer authority to guess answers or submit applications.
   - Browser-facing synthetic form tests can validate scanner and fill behavior without touching real job sites.
   - Manual visible-browser verification requires a local Playwright Chromium install with `npx playwright install chromium`.
+
+## 2026-06-28 - Phase 7 run manager and prompt bridge ownership
+
+- Status: Accepted
+- Context: Browser scanning, resolver decisions, prompt persistence, memory persistence, and live run events needed to become one supervised workflow without moving those responsibilities into routes or browser adapters.
+- Decision:
+  - Add `apps/server/src/runner/run-manager.ts` as the owner of run lifecycle orchestration.
+  - Add `apps/server/src/runner/prompt-bridge.ts` as the owner of prompt creation, prompt response persistence, current-prompt clearing, and opt-in learned-answer creation.
+  - Keep route handlers thin: `/runs` delegates to the run manager, and prompt responses resume through the run manager instead of writing directly to the repository.
+  - Enforce one active in-memory run session for v1.
+  - Fill only resolver `fill` decisions automatically; prompt responses are converted into explicit fill decisions and pass through the same adapter fill path.
+  - Save learned answers only when the prompt response has `saveForReuse: true`.
+  - Mark automatically reused learned answers with `lastUsedAt` after a successful learned-answer fill.
+  - Record `failed` and `canceled` states with run steps and events while leaving browser teardown to normal app shutdown.
+- Consequences:
+  - The runner composes browser, resolver, prompt, memory, and event modules without absorbing their internal responsibilities.
+  - Prompt pauses are durable and observable through run status, current prompt, step history, and live events.
+  - Memory reuse remains auditable without logging answer values in run steps or events.
+  - Multi-page navigation, dashboard UI, and final-submit enforcement remain deferred to later phases.

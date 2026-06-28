@@ -5,6 +5,8 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createServerApp } from "../../apps/server/src/app.js";
+import type { SiteAdapter } from "../../apps/server/src/adapters/site-adapter.js";
+import type { BrowserService } from "../../apps/server/src/browser/playwright.js";
 import { loadServerRuntimePaths } from "../../apps/server/src/config/runtime-paths.js";
 import type { RunEvent } from "../../packages/shared/src/index.js";
 
@@ -17,14 +19,17 @@ afterEach(() => {
 });
 
 describe("run routes", () => {
-  it("creates a pending run through the stub runner", async () => {
+  it("starts a browser-backed run and stops for review when no prompts are needed", async () => {
     const server = await createTemporaryServer({
-      ids: ["run-1", "step-1"],
+      ids: ["run-1", "step-1", "step-2", "step-3", "step-4", "step-5", "step-6"],
       timestamps: [
         "2026-06-28T00:00:00.000Z",
         "2026-06-28T00:01:00.000Z",
         "2026-06-28T00:02:00.000Z",
-        "2026-06-28T00:03:00.000Z"
+        "2026-06-28T00:03:00.000Z",
+        "2026-06-28T00:04:00.000Z",
+        "2026-06-28T00:05:00.000Z",
+        "2026-06-28T00:06:00.000Z"
       ]
     });
     const events: RunEvent[] = [];
@@ -46,18 +51,28 @@ describe("run routes", () => {
       run: {
         id: "run-1",
         jobUrl: "https://jobs.example.com/apply/123",
-        status: "pending",
+        status: "waitingForReview",
         latestStep: {
-          id: "step-1",
+          id: "step-6",
           runId: "run-1",
-          status: "pending",
+          status: "waitingForReview",
           level: "info",
-          message: "Run created. Browser automation is not started in Phase 4."
+          message:
+            "Current page filled as far as safely possible. Waiting for human review."
         }
       }
     });
-    expect(server.context.runRepository.listRunSteps("run-1")).toHaveLength(1);
+    expect(server.context.runRepository.listRunSteps("run-1")).toHaveLength(6);
     expect(events.map((event) => event.eventType)).toEqual([
+      "runStatusChanged",
+      "runStepAdded",
+      "runStatusChanged",
+      "runStepAdded",
+      "runStatusChanged",
+      "runStepAdded",
+      "runStepAdded",
+      "runStatusChanged",
+      "runStepAdded",
       "runStatusChanged",
       "runStepAdded"
     ]);
@@ -238,7 +253,10 @@ describe("run routes", () => {
     expect(server.context.runRepository.getPrompt(prompt.id)?.status).toBe(
       "answered"
     );
-    expect(events.map((event) => event.eventType)).toEqual(["promptAnswered"]);
+    expect(events.map((event) => event.eventType)).toEqual([
+      "promptAnswered",
+      "runStepAdded"
+    ]);
 
     await server.close();
   });
@@ -387,6 +405,8 @@ interface TemporaryServerOptions {
 async function createTemporaryServer(options: TemporaryServerOptions = {}) {
   return createServerApp({
     runtimePaths: createTemporaryRuntimePaths(),
+    browserService: createFakeBrowserService(),
+    siteAdapter: createEmptySiteAdapter(),
     createId: createIds(options.ids ?? []),
     now: createClock(options.timestamps ?? [])
   });
@@ -414,6 +434,37 @@ function createClock(timestamps: string[]): () => string {
 
 function createIds(ids: string[]): () => string {
   return () => ids.shift() ?? crypto.randomUUID();
+}
+
+function createFakeBrowserService(): BrowserService {
+  return {
+    browserProfilePath: "/tmp/fast-app-browser-profile",
+    async openContext() {
+      return {} as Awaited<ReturnType<BrowserService["openContext"]>>;
+    },
+    async openPage() {
+      return {
+        url: () => "https://jobs.example.com/apply/123"
+      } as Awaited<ReturnType<BrowserService["openPage"]>>;
+    },
+    async close() {
+      return undefined;
+    }
+  };
+}
+
+function createEmptySiteAdapter(): SiteAdapter {
+  return {
+    async scanPage() {
+      return [];
+    },
+    async fillField() {
+      throw new Error("No fields should be filled in this route test.");
+    },
+    async classifyContinuationControls() {
+      return [];
+    }
+  };
 }
 
 async function waitForSubscription(): Promise<void> {

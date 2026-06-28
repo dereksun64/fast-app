@@ -23,6 +23,9 @@ import {
   type ProfileRepository
 } from "./profile/profile-repository.js";
 import { registerRoutes } from "./routes/index.js";
+import type { SiteAdapter } from "./adapters/site-adapter.js";
+import { createPromptBridge, type PromptBridge } from "./runner/prompt-bridge.js";
+import { createRunManager, type RunManager } from "./runner/run-manager.js";
 import {
   createRunRepository,
   type RunRepository
@@ -41,12 +44,16 @@ export interface ServerAppContext {
   readonly runRepository: RunRepository;
   readonly eventPublisher: RunEventPublisher;
   readonly stubRunner: StubRunner;
+  readonly promptBridge: PromptBridge;
+  readonly runManager: RunManager;
   readonly browserService: BrowserService;
 }
 
 export interface CreateServerAppOptions {
   readonly runtimePaths?: ServerRuntimePaths;
   readonly database?: SqliteDatabase;
+  readonly browserService?: BrowserService;
+  readonly siteAdapter?: SiteAdapter;
   readonly now?: () => string;
   readonly createId?: () => string;
 }
@@ -78,8 +85,26 @@ export async function createServerApp(
   );
   const runRepository = createRunRepository(database, repositoryOptions(options));
   const eventPublisher = createRunEventPublisher();
-  const browserService = createBrowserService({
-    runtimePaths
+  const browserService =
+    options.browserService ??
+    createBrowserService({
+      runtimePaths
+    });
+  const promptBridge = createPromptBridge({
+    runRepository,
+    memoryRepository,
+    eventPublisher,
+    ...stubRunnerOptions(options)
+  });
+  const runManager = createRunManager({
+    browserService,
+    profileRepository,
+    memoryRepository,
+    runRepository,
+    eventPublisher,
+    promptBridge,
+    ...(options.siteAdapter ? { siteAdapter: options.siteAdapter } : {}),
+    ...stubRunnerOptions(options)
   });
 
   const context: ServerAppContext = {
@@ -94,6 +119,8 @@ export async function createServerApp(
       eventPublisher,
       ...stubRunnerOptions(options)
     }),
+    promptBridge,
+    runManager,
     browserService
   };
 
@@ -102,7 +129,9 @@ export async function createServerApp(
   });
 
   app.addHook("onClose", async () => {
-    await browserService.close();
+    if (!options.browserService) {
+      await browserService.close();
+    }
 
     if (!options.database) {
       database.close();

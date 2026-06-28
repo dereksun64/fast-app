@@ -5,13 +5,12 @@ import {
   getRunResponseSchema,
   runEventSchema,
   respondToPromptRequestSchema,
-  respondToPromptResponseSchema,
-  runEventSchemaVersion
+  respondToPromptResponseSchema
 } from "@fast-app/shared";
 import type { RunEvent } from "@fast-app/shared";
 
 import type { ServerAppContext } from "../app.js";
-import { notFound, parseBody, parseResponse } from "./api-errors.js";
+import { badRequest, notFound, parseBody, parseResponse } from "./api-errors.js";
 
 interface RunRouteParams {
   readonly id: string;
@@ -35,9 +34,22 @@ export async function registerRunRoutes(
       request.body,
       "Invalid run payload."
     );
-    const response = options.context.stubRunner.createPendingRun(
-      createRunRequest.jobUrl
-    );
+    let response;
+
+    try {
+      response = await options.context.runManager.startRun(
+        createRunRequest.jobUrl
+      );
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "Only one active run is supported in v1."
+      ) {
+        throw badRequest(error.message);
+      }
+
+      throw error;
+    }
 
     return parseResponse(createRunResponseSchema, response);
   });
@@ -108,27 +120,17 @@ export async function registerRunRoutes(
         request.body,
         "Invalid prompt response payload."
       );
-      const answeredPrompt = options.context.runRepository.answerPrompt(
-        prompt.id,
-        promptResponseRequest.response
-      );
+      const promptResponse = await options.context.runManager.respondToPrompt({
+        runId: run.id,
+        promptId: prompt.id,
+        response: promptResponseRequest.response
+      });
 
-      if (!answeredPrompt) {
+      if (!promptResponse) {
         throw notFound("Prompt not found for run.");
       }
 
-      options.context.eventPublisher.publish({
-        schemaVersion: runEventSchemaVersion,
-        eventType: "promptAnswered",
-        runId: run.id,
-        prompt: answeredPrompt,
-        at: new Date().toISOString()
-      });
-
-      return parseResponse(respondToPromptResponseSchema, {
-        run: options.context.runRepository.getRun(run.id) ?? run,
-        prompt: answeredPrompt
-      });
+      return parseResponse(respondToPromptResponseSchema, promptResponse);
     }
   );
 }

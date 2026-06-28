@@ -27,7 +27,10 @@ export interface FieldDescriptor {
   readonly required?: boolean;
 }
 
-export type ResolverDecisionSource = "profile" | "learned-answer";
+export type ResolverDecisionSource =
+  | "profile"
+  | "learned-answer"
+  | "prompt-response";
 
 export type ResolverPromptReason =
   | "missing-profile-value"

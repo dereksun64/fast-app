@@ -10,7 +10,7 @@ This is a human-supervised autofill tool, not a fully autonomous job application
 
 ## Current Status
 
-The repository currently includes Phase 1 and Phase 2 foundation work, Phase 3 persistence work, Phase 4 local API work, Phase 5 resolver decision work, and Phase 6 browser-scanning foundations:
+The repository currently includes Phase 1 and Phase 2 foundation work, Phase 3 persistence work, Phase 4 local API work, Phase 5 resolver decision work, Phase 6 browser-scanning foundations, and Phase 7 supervised run orchestration:
 
 - npm workspace setup
 - TypeScript project references
@@ -30,9 +30,11 @@ The repository currently includes Phase 1 and Phase 2 foundation work, Phase 3 p
 - conservative browser filling utilities that only act on resolver `fill` decisions
 - continuation-control classification as data only, with no automatic submit/apply clicks
 - local screenshot helper that stores screenshots by file path
+- run manager that starts one visible-browser-backed run for v1, scans the current page, fills safe resolver decisions, pauses for prompts, resumes after prompt responses, and stops in `waitingForReview`
+- prompt bridge that persists the current prompt, clears it after a valid response, saves learned answers only when reuse is explicitly approved, and marks automatically reused memories as used
 - planning and tracking documents
 
-No dashboard behavior, real prompt resume orchestration, multi-page browser run management, or final-submit behavior has been implemented yet.
+No dashboard behavior, multi-page browser run management, or final-submit behavior has been implemented yet.
 
 ## Scope
 
@@ -205,9 +207,23 @@ fast-app/
    - direct canonical profile mapping by known aliases
    - exact or high-confidence learned answer match from memory
    - otherwise pause and ask the user
-5. After the user answers a prompt, the app fills the answer in the browser and saves a memory record with field label, nearby text, input type, page URL or hostname, and normalized answer.
+5. After the user answers a prompt, the app fills the answered field in the browser and saves a memory record with field label, nearby text, input type, page URL or hostname, and normalized answer only when the user opts into reuse.
 6. The run continues until the current page is filled, then stops at a review state.
 7. If there is a clear Next button, the app can advance one step at a time, but still stops before final submission.
+
+## Run Statuses
+
+- `pending`: run record exists, but browser work has not started.
+- `starting`: the visible browser is opening or navigating.
+- `scanning`: the current page is being scanned into field descriptors.
+- `filling`: known safe fields are being resolved and filled.
+- `prompting`: the run is paused on the current prompt and waiting for a user response.
+- `waitingForReview`: automation has stopped on the current page for human review.
+- `failed`: the run hit an error; history remains inspectable and the browser is not closed unexpectedly.
+- `canceled`: the operator canceled the run.
+- `completed`: reserved for future explicit completion behavior.
+
+Prompt responses can answer or skip a field. Answered prompts resume the run through the same safe fill path used for automatic fills. Learned answers are created only when `saveForReuse` is true, and reused learned answers update `lastUsedAt` without exposing answer values in run events.
 
 ## Data Model
 

@@ -19,10 +19,12 @@
 | Resolver decision logic | Done | Covers profile alias resolution, split-name handling, missing split-name values, learned-answer strong matches, disabled memory exclusion, host/path/context mismatch behavior, option compatibility, low-confidence prompts, open-ended prompt behavior, and resolver ordering. |
 | Browser service configuration | Done | Covers configured persistent profile path, visible default launch mode, headless test override, URL validation, and screenshot reason sanitization without launching a real browser. |
 | Generic DOM adapter tests | Done | Synthetic form tests cover scanner descriptors, label/context extraction, option extraction, safe fills, prompt/skip non-mutation, metadata sanitization, and continuation classification. These tests execute when Playwright Chromium can launch locally; they skip without a browser binary. |
-| Prompt resume, final-submit safety, and UI behavior tests | Not Started | Prompt resume orchestration, saving new learned answers during runs, final-submit enforcement, and dashboard behavior remain deferred until later runtime phases. |
+| Run manager and prompt bridge orchestration | Done | Covers unknown-field prompt creation, no fill before prompt response, prompt response resume, prompt-response fill path, save-for-reuse opt in/out, later learned-answer reuse, `lastUsedAt` updates, event status ordering, failure handling, and cancellation state. |
+| Prompt response route integration | Done | Covers route delegation through the run manager and prompt bridge while preserving prompt ownership validation and SSE event delivery. |
+| Final-submit safety and UI behavior tests | Not Started | Final-submit enforcement and dashboard behavior remain deferred until later runtime phases. |
 
 ## Known Gaps
 
 - Synthetic browser-driving adapter tests are blocked inside the Codex sandbox because Chromium cannot register its macOS Mach port from this environment. Run `PLAYWRIGHT_BROWSERS_PATH=.cache/ms-playwright npm test` in a normal local terminal to execute them.
-- No prompt resume orchestration, final-submit safety enforcement, or UI behavior tests exist yet because those runtime behaviors have not started.
+- No final-submit safety enforcement or UI behavior tests exist yet because those runtime behaviors have not started.
 - Real socket listener lifecycle is not covered in automated tests because the sandbox blocks binding to `127.0.0.1`; Fastify in-process injection covers route behavior.
